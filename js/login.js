@@ -1,8 +1,9 @@
 // js/login.js — single-dashboard flow (semua role → dashboard.html)
 import { supabase } from "./supabase-init.js";
 
-// ---------- Helpers ----------
+/* ================= Helpers ================= */
 const $ = (s) => document.querySelector(s);
+const EMAIL_REDIRECT_TO = `${location.origin}/index.html`;
 
 function ensureMsgEl() {
   let el = $("#msg");
@@ -16,71 +17,77 @@ function ensureMsgEl() {
   }
   return el;
 }
-
 function setMsg(text = "", tone = "info") {
   const el = ensureMsgEl();
-  el.textContent = text;
+  el.textContent = text || "";
   el.classList.remove("error", "success", "info");
   if (text) el.classList.add(tone);
 }
-
 function setBusy(btn, busy) {
   if (!btn) return;
   btn.disabled = !!busy;
   btn.setAttribute("aria-busy", busy ? "true" : "false");
 }
 
+/* ---- Normalisasi & Navigasi ---- */
+// DB menggunakan 'mitracabang' (tanpa tanda hubung)
+function normalizeRole(r) {
+  const x = String(r || "").trim().toLowerCase();
+  if (x === "mitra-cabang" || x === "mitra_cabang") return "mitracabang";
+  if (x === "branch") return "cabang";
+  if (x === "pemilik") return "owner";
+  return x; // "owner" | "mitracabang" | "cabang" | "link" | "admin" | "" | lainnya
+}
+function targetHashForRole(role) {
+  const r = normalizeRole(role);
+  if (r === "mitracabang") return "#mitra";
+  if (r === "cabang") return "#cabang";
+  if (r === "link") return "#link";
+  // owner/admin/unknown → tanpa hash
+  return "";
+}
 function goDashboard(role) {
-  // Satu halaman untuk semua role; hash opsional kalau mau dipakai
-  const hash = (role === "owner" || role === "admin")
-    ? ""
-    : role === "mitra-cabang" || role === "mitracabang"
-      ? "#mitra"
-      : role === "cabang"
-        ? "#cabang"
-        : role === "link"
-          ? "#link"
-          : "";
-  location.replace(`dashboard.html${hash}`);
+  location.replace(`dashboard.html${targetHashForRole(role)}`);
 }
 
-// ---------- Redirect jika sudah login ----------
+/* ================= Redirect jika sudah login ================= */
 async function redirectIfLoggedIn() {
   try {
     const { data: { session }, error } = await supabase.auth.getSession();
     if (error || !session) return;
 
-    // sudah login → ambil role lalu ke dashboard.html (satu halaman)
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return goDashboard();
+    if (!user) return goDashboard("");
 
-    const { data: profile, error: pErr } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
+    // Utama: baca dari profiles
+    let role = "";
+    try {
+      const { data: profile, error: pErr } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
+      if (!pErr) role = String(profile?.role || "");
+    } catch { /* abaikan; fallback di bawah */ }
 
-    if (pErr) {
-      console.warn("profiles role load error:", pErr);
-      return goDashboard(); // tetap ke dashboard tanpa hash
-    }
-
-    goDashboard(String(profile?.role || "").toLowerCase());
+    if (!role) role = String(user.user_metadata?.role || "");
+    goDashboard(role);
   } catch (err) {
     console.error("redirectIfLoggedIn exception:", err);
   }
 }
 redirectIfLoggedIn();
 
-// ---------- Init setelah DOM siap ----------
+/* ================= Init setelah DOM siap ================= */
 function init() {
-  const form   = $("#loginForm");
-  const emailEl = $("#email");
-  const passEl  = $("#password");
-  const toggleBtn = $("#togglePass"); // kalau ada tombol
-  const showCb   = $("#showPass");    // checkbox pada index.html
+  const form       = $("#loginForm");
+  const emailEl    = $("#email");
+  const passEl     = $("#password");
+  const toggleBtn  = $("#togglePass");  // tombol (opsional)
+  const showCb     = $("#showPass");    // checkbox (opsional)
+  const resendBtn  = $("#resendVerify");// tombol kirim ulang (opsional)
 
-  // Toggle via tombol (jika ada)
+  // Toggle via tombol
   if (toggleBtn && passEl) {
     toggleBtn.addEventListener("click", () => {
       const newType = passEl.type === "password" ? "text" : "password";
@@ -88,10 +95,36 @@ function init() {
       toggleBtn.setAttribute("aria-pressed", newType === "text" ? "true" : "false");
     });
   }
-  // Toggle via checkbox (default pada index.html)
+  // Toggle via checkbox
   if (showCb && passEl) {
     showCb.addEventListener("change", () => {
       passEl.type = showCb.checked ? "text" : "password";
+    });
+  }
+
+  // Kirim ulang verifikasi (opsional tombol)
+  if (resendBtn) {
+    resendBtn.addEventListener("click", async () => {
+      const email = (emailEl?.value || "").trim();
+      if (!email) {
+        setMsg("Masukkan email terlebih dahulu, lalu klik kirim ulang verifikasi.", "error");
+        emailEl?.focus();
+        return;
+      }
+      resendBtn.setAttribute("disabled", "disabled");
+      try {
+        const { error } = await supabase.auth.resend({
+          type: "signup",
+          email,
+          options: { emailRedirectTo: EMAIL_REDIRECT_TO },
+        });
+        if (error) throw error;
+        setMsg("Tautan verifikasi baru sudah dikirim. Cek Inbox/Spam, lalu klik tautannya.", "success");
+      } catch (e) {
+        setMsg(e?.message || "Gagal mengirim ulang verifikasi.", "error");
+      } finally {
+        resendBtn.removeAttribute("disabled");
+      }
     });
   }
 
@@ -104,57 +137,76 @@ function init() {
     const email = (emailEl.value || "").trim();
     const password = passEl.value || "";
 
-    if (!email) {
-      setMsg("Email wajib diisi.", "error");
-      emailEl.focus(); return;
-    }
-    if (!/^\S+@\S+\.\S+$/.test(email)) {
-      setMsg("Format email tidak valid.", "error");
-      emailEl.focus(); return;
-    }
-    if (!password) {
-      setMsg("Password wajib diisi.", "error");
-      passEl.focus(); return;
-    }
+    if (!email) { setMsg("Email wajib diisi.", "error"); emailEl.focus(); return; }
+    if (!/^\S+@\S+\.\S+$/.test(email)) { setMsg("Format email tidak valid.", "error"); emailEl.focus(); return; }
+    if (!password) { setMsg("Password wajib diisi.", "error"); passEl.focus(); return; }
 
     const btn =
       (e.submitter && /** @type {HTMLElement} */ (e.submitter)) ||
-      form.querySelector('button[type="submit"], [type="submit"]');
+      form.querySelector("button[type='submit'], [type='submit']");
 
     setBusy(btn, true);
-
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       setBusy(btn, false);
 
       if (error) {
-        setMsg(error.message || "Login gagal. Periksa kredensial Anda.", "error");
-        (String(error.message || "").toLowerCase().includes("password") ? passEl : emailEl).focus();
+        const raw = String(error.message || "");
+        const msg = raw.toLowerCase();
+
+        // === Kasus paling sering: email belum terkonfirmasi ===
+        if (msg.includes("email not confirmed") || msg.includes("email not confirmed")) {
+          setMsg("Email belum terverifikasi. Mengirim ulang tautan verifikasi…", "info");
+          try {
+            const { error: re } = await supabase.auth.resend({
+              type: "signup",
+              email,
+              options: { emailRedirectTo: EMAIL_REDIRECT_TO },
+            });
+            if (re) throw re;
+            setMsg("Tautan verifikasi baru terkirim. Cek Inbox/Spam, lalu klik tautannya.", "success");
+          } catch (re) {
+            setMsg(re?.message || "Gagal mengirim ulang verifikasi. Coba lagi atau hubungi admin.", "error");
+          }
+          return;
+        }
+
+        // Kredensial salah
+        if (msg.includes("invalid login credentials") || msg.includes("invalid")) {
+          setMsg("Email atau password salah.", "error");
+          (msg.includes("password") ? passEl : emailEl).focus();
+          return;
+        }
+
+        // Pesan lain
+        setMsg(raw || "Login gagal. Periksa kredensial Anda.", "error");
+        (msg.includes("password") ? passEl : emailEl).focus();
         return;
       }
 
-      if (data?.session) {
-        // login sukses → ambil role, lalu ke dashboard.html
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return goDashboard();
+      if (!data?.session) {
+        setMsg("Login berhasil, namun sesi belum tersedia. Coba lagi.", "error");
+        return;
+      }
 
+      // login sukses → ambil role dari profiles; fallback ke user_metadata.role
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { goDashboard(""); return; }
+
+      let role = "";
+      try {
         const { data: profile, error: pErr } = await supabase
           .from("profiles")
           .select("role")
           .eq("id", user.id)
           .single();
+        if (!pErr) role = String(profile?.role || "");
+      } catch { /* abaikan */ }
 
-        if (pErr) {
-          console.warn("profiles role load error:", pErr);
-          setMsg("Berhasil masuk. Mengalihkan…", "success");
-          return goDashboard(); // fallback tanpa hash
-        }
+      if (!role) role = String(user.user_metadata?.role || "");
 
-        setMsg("Berhasil masuk. Mengalihkan…", "success");
-        return goDashboard(String(profile?.role || "").toLowerCase());
-      }
-
-      setMsg("Login berhasil, namun sesi belum tersedia. Coba lagi.", "error");
+      setMsg("Berhasil masuk. Mengalihkan…", "success");
+      goDashboard(role);
     } catch (err) {
       setBusy(btn, false);
       console.error("signIn exception:", err);

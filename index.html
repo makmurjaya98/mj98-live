@@ -3,31 +3,70 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="color-scheme" content="light dark" />
   <title>Login - MJ98</title>
 
   <!-- CSS global -->
   <link rel="stylesheet" href="style.css" />
 
   <!-- Favicon kecil agar tidak 404 -->
-  <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="%23F5D270"/><text x="50%" y="58%" font-size="34" text-anchor="middle" fill="%23333" font-family="Arial, Helvetica, sans-serif">MJ</text></svg>'>
+  <link
+    rel="icon"
+    href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="%23F5D270"/><text x="50%" y="58%" font-size="34" text-anchor="middle" fill="%23333" font-family="Arial, Helvetica, sans-serif">MJ</text></svg>'
+  />
 </head>
 
+<!-- Alert global (tidak mengganggu halaman lain) -->
 <script type="module">
-  import('./js/global-alert.js?v=deploy-01').then(m => m.initGlobalAlerts?.());
+  import("./js/global-alert.js?v=deploy-01").then(m => m.initGlobalAlerts?.());
 </script>
 
 <body class="page-login">
-  <div class="auth-card">
-    <img class="logo" alt="MJ98">
+  <noscript>
+    <div class="center mt-12 error">JavaScript wajib aktif untuk menggunakan aplikasi ini.</div>
+  </noscript>
 
+  <div class="auth-card" role="main" aria-labelledby="loginTitle">
+    <img class="logo" alt="MJ98" />
+
+    <h1 id="loginTitle" class="sr-only">Login MJ98</h1>
     <p class="center opacity-80 fs-14 mb-12">Masuk untuk semua role</p>
 
-    <form id="loginForm">
+    <form id="loginForm" novalidate autocomplete="on">
+      <!-- EMAIL -->
       <label for="email">Email</label>
-      <input id="email" name="email" type="email" required placeholder="nama@email.com" />
+      <input
+        id="email"
+        name="email"
+        type="email"
+        inputmode="email"
+        autocomplete="email"
+        autocapitalize="none"
+        spellcheck="false"
+        required
+        placeholder="nama@email.com"
+      />
 
-      <label for="password">Password</label>
-      <input id="password" name="password" type="password" required placeholder="********" />
+      <!-- PASSWORD + toggle (compatible dengan login.js: #togglePass & #showPass) -->
+      <label for="password" class="mt-8">Password</label>
+      <div class="input-with-action">
+        <input
+          id="password"
+          name="password"
+          type="password"
+          autocomplete="current-password"
+          required
+          placeholder="********"
+        />
+        <!-- optional eye button (login.js juga support checkbox #showPass) -->
+        <button
+          id="togglePass"
+          type="button"
+          class="btn-icon"
+          aria-label="Tampilkan/sembunyikan password"
+          title="Tampilkan/sembunyikan password"
+        >👁</button>
+      </div>
 
       <div class="mt-8">
         <label class="fs-12">
@@ -39,6 +78,7 @@
       <button type="submit" class="btn btn-primary block mt-12">Login</button>
     </form>
 
+    <!-- Link pelengkap -->
     <div class="center mt-12 fs-14">
       Belum punya akun?
       <a href="register.html">Daftar</a>
@@ -47,7 +87,15 @@
       <a href="reset-password.html">Reset</a>
     </div>
 
+    <!-- Area pesan dari login.js -->
     <div id="msg" class="center mt-12 fs-14" aria-live="polite"></div>
+
+    <!-- Tombol kirim ulang verifikasi (dipakai login.js bila email belum confirmed) -->
+    <div class="center mt-8">
+      <button id="resendVerify" type="button" class="btn btn-ghost fs-14">
+        Kirim ulang verifikasi
+      </button>
+    </div>
   </div>
 
   <!-- Modul aplikasi -->
