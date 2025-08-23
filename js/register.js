@@ -2,9 +2,9 @@
 import { supabase } from "./supabase-init.js";
 
 /* =============== UTIL =============== */
-const params = new URLSearchParams(location.search);
+const params   = new URLSearchParams(location.search);
 const formRoot = () => document.getElementById("regForm");
-const q = (sel) => formRoot()?.querySelector(sel) || document.querySelector(sel);
+const q        = (sel) => formRoot()?.querySelector(sel) || document.querySelector(sel);
 
 function toast(msg, ok = false) {
   const el = q("#msg") || (() => {
@@ -17,10 +17,10 @@ function toast(msg, ok = false) {
 }
 const val = (el) => (typeof el?.value === "string" ? el.value.trim() : "");
 
-// UI role → DB role (seragam: "mitra-cabang" bertanda hubung)
+// UI role → DB role (standar: "mitracabang" TANPA tanda hubung)
 function normRole(r) {
   const x = String(r || "").toLowerCase();
-  if (x === "mitracabang" || x === "mitra_cabang") return "mitra-cabang";
+  if (x === "mitra-cabang" || x === "mitra_cabang") return "mitracabang";
   return x;
 }
 
@@ -61,7 +61,7 @@ async function listOwners() {
 async function listMitraByOwner(owner_id) {
   if (!owner_id) return [];
   const { data, error } = await supabase.rpc("list_public_profiles", {
-    p_role: "mitra-cabang",      // <<< konsisten dengan DB
+    p_role: "mitracabang",     // <- STANDAR
     p_owner: owner_id
   });
   if (error) { console.error("[mitra]", error); return []; }
@@ -128,7 +128,7 @@ async function tryPrefillChainFromURL() {
   pickBy(els.pickCabang(), pCabang);
 }
 
-/* =============== ROLE LOGIC (tampil bertahap sesuai aturan) =============== */
+/* =============== ROLE LOGIC (bertahap sesuai aturan) =============== */
 async function applyRoleUI(initial = false) {
   const uiRole = (els.role()?.value || "link").toLowerCase();
 
@@ -243,9 +243,9 @@ function currentChainIds() {
   const mitra_id  = els.pickMitra()?.value || null;
   const cabang_id = els.pickCabang()?.value || null;
 
-  if (uiRole === "owner")       return { owner_id: null,               mitracabang_id: null,     cabang_id: null };
-  if (uiRole === "mitracabang") return { owner_id,                     mitracabang_id: null,     cabang_id: null };
-  if (uiRole === "cabang")      return { owner_id,                     mitracabang_id: mitra_id, cabang_id: null };
+  if (uiRole === "owner")        return { owner_id: null,               mitracabang_id: null,     cabang_id: null };
+  if (uiRole === "mitracabang")  return { owner_id,                     mitracabang_id: null,     cabang_id: null };
+  if (uiRole === "cabang")       return { owner_id,                     mitracabang_id: mitra_id, cabang_id: null };
   return { owner_id, mitracabang_id: mitra_id, cabang_id }; // link
 }
 function validateChain(uiRole, ids) {
@@ -284,7 +284,7 @@ if (formEl) {
     toast("");
 
     const uiRole    = (els.role()?.value || "link").toLowerCase();
-    const dbRole    = normRole(uiRole);        // pastikan "mitra-cabang"
+    const dbRole    = normRole(uiRole);        // pastikan "mitracabang"
     const email     = val(els.email());
     const password  = val(els.pass());
     const password2 = val(els.pass2());
@@ -294,7 +294,7 @@ if (formEl) {
     if (chainErr) return toast(chainErr);
 
     const payload = {
-      role:      dbRole,                     // simpan role versi DB (mitra-cabang)
+      role:      dbRole,                     // simpan role versi DB (mitracabang)
       username:  val(els.username()),
       full_name: val(els.full_name()),
       nomor_id:  val(els.nomor_id()),
@@ -304,12 +304,12 @@ if (formEl) {
       ...chain,
     };
 
-    if (!payload.username)     return toast("Username wajib diisi.");
-    if (!email)                return toast("Email wajib diisi.");
-    if (!password)             return toast("Password wajib diisi.");
-    if (password.length < 6)   return toast("Password minimal 6 karakter.");
-    if (password !== password2)return toast("Ulangi password tidak sama.");
-    if (!payload.nomor_id)     return toast("Nomor ID wajib diisi.");
+    if (!payload.username)      return toast("Username wajib diisi.");
+    if (!email)                 return toast("Email wajib diisi.");
+    if (!password)              return toast("Password wajib diisi.");
+    if (password.length < 6)    return toast("Password minimal 6 karakter.");
+    if (password !== password2) return toast("Ulangi password tidak sama.");
+    if (!payload.nomor_id)      return toast("Nomor ID wajib diisi.");
 
     const btn = els.submitBtn(); btn?.setAttribute("disabled","disabled");
 
@@ -324,7 +324,7 @@ if (formEl) {
       });
       if (error) throw error;
 
-      // 2) jika ada session, buat profile via RPC lalu fallback upsert
+      // 2) jika ada session, coba RPC, lalu fallback upsert
       let session = data.session;
       if (!session) {
         const g = await supabase.auth.getSession();
@@ -335,7 +335,7 @@ if (formEl) {
         let rpcFailed = false;
         try {
           const { error: eRpc } = await supabase.rpc("fn_register_profile", {
-            p_role: payload.role, // pakai role versi DB ("mitra-cabang")
+            p_role: payload.role, // "mitracabang"
             p_username: payload.username,
             p_full_name: payload.full_name,
             p_nomor_id: payload.nomor_id,
@@ -376,10 +376,9 @@ if (formEl) {
       }
     } catch (err) {
       console.error(err);
-      // beri pesan yang lebih informatif jika error DB/trigger
       const msg = err?.message || String(err);
       toast(msg.includes("Database error saving new user")
-        ? "Gagal simpan user di database. Cek role & relasi (owner/mitra/cabang) atau hubungi admin."
+        ? "Gagal simpan user di database. Cek role & relasi (owner/mitra/cabang)."
         : msg);
     } finally {
       btn?.removeAttribute("disabled");
@@ -399,11 +398,9 @@ if (resendBtn) {
     resendBtn.setAttribute('disabled', 'disabled');
     try {
       const { error } = await supabase.auth.resend({
-        type: 'signup',              // kirim ulang email verifikasi signup
+        type: 'signup',
         email,
-        options: {
-          emailRedirectTo: `${location.origin}/index.html`, // kembali ke app setelah klik
-        },
+        options: { emailRedirectTo: `${location.origin}/index.html` },
       });
       if (error) throw error;
       toast('Link verifikasi dikirim ulang. Cek inbox/spam.', true);
