@@ -1,0 +1,167 @@
+﻿<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Daftar - MJ98</title>
+  <link rel="stylesheet" href="style.css" />
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<!-- Global alert aman: modulnya sendiri sudah mematikan di halaman auth -->
+<script type="module">
+  import('./js/global-alert.js').then(m => m.initGlobalAlerts?.());
+</script>
+
+<body class="page-register">
+  <!-- Bar atas -->
+  <header class="sitebar">
+    <div style="display:flex;align-items:center;gap:10px">
+      <img class="logo" src="assets/gold.png" alt="MJ98" />
+      <strong>Pendaftaran Akun</strong>
+    </div>
+    <a href="index.html" class="btn">Sudah punya akun? Login</a>
+  </header>
+
+  <!-- Kartu form -->
+  <section class="auth-card container">
+    <!-- Hero register: logo + judul di tengah -->
+    <div class="hero-register">
+      <img class="hero-logo" src="assets/gold.png" alt="MJ98" />
+      <h1 class="hero-title">DAFTAR AKUN MJ98</h1>
+    </div>
+
+    <form id="regForm" class="form-grid mt-12" autocomplete="on">
+      <!-- Baris 1 -->
+      <div>
+        <label for="username">Username</label>
+        <input id="username" name="username" required placeholder="username" autocomplete="username" />
+      </div>
+      <div>
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" required placeholder="nama@email.com" autocomplete="email" />
+      </div>
+
+      <!-- Baris 2 -->
+      <div>
+        <label for="full_name">Nama Lengkap</label>
+        <input id="full_name" name="full_name" required placeholder="Nama lengkap" autocomplete="name" />
+      </div>
+      <div>
+        <label for="nomor_id">Nomor ID</label>
+        <input id="nomor_id" name="nomor_id" required placeholder="Nomor identitas/kode internal" />
+      </div>
+
+      <!-- Baris 3 (password + eye) -->
+      <div>
+        <label for="password">Password</label>
+        <div style="position:relative">
+          <input id="password" name="password" type="password" required placeholder="********" autocomplete="new-password" />
+          <button id="eye1" type="button" aria-label="Lihat password"
+            style="position:absolute;right:10px;top:50%;transform:translateY(-50%);border:none;background:transparent;cursor:pointer">👁</button>
+        </div>
+      </div>
+      <div>
+        <label for="password2">Ulangi Password</label>
+        <div style="position:relative">
+          <input id="password2" name="password2" type="password" required placeholder="********" autocomplete="new-password" />
+          <button id="eye2" type="button" aria-label="Lihat ulangi password"
+            style="position:absolute;right:10px;top:50%;transform:translateY(-50%);border:none;background:transparent;cursor:pointer">👁</button>
+        </div>
+      </div>
+
+      <!-- Baris 4 (opsional umum) -->
+      <div>
+        <label for="phone">No. HP (opsional)</label>
+        <input id="phone" name="phone" placeholder="08xx…" inputmode="tel" autocomplete="tel" />
+      </div>
+      <div>
+        <label for="nik">NIK (opsional)</label>
+        <input id="nik" name="nik" placeholder="NIK (jika relevan)" />
+      </div>
+
+      <!-- Baris 5 -->
+      <div class="full">
+        <label for="address">Alamat (opsional)</label>
+        <input id="address" name="address" placeholder="Alamat" autocomplete="street-address" />
+      </div>
+
+      <!-- Separator -->
+      <div class="full mt-12">
+        <div class="flex items-center justify-between">
+          <strong>Peran & Relasi</strong>
+          <span class="pill">Pilih bertahap</span>
+        </div>
+      </div>
+
+      <!-- Role -->
+      <div class="full">
+        <label for="role">Role</label>
+        <select id="role" name="role">
+          <option value="owner">owner</option>
+          <option value="admin">admin</option>
+          <option value="mitracabang">mitracabang</option>
+          <option value="cabang">cabang</option>
+          <option value="link" selected>link</option>
+        </select>
+      </div>
+
+      <!-- Bertahap: owner -> mitra -> cabang (tampil/dihilangkan via JS) -->
+      <div id="ownerBox" class="full" hidden>
+        <label for="owner_pick">Pilih Owner</label>
+        <select id="owner_pick">
+          <option value="">— pilih owner —</option>
+        </select>
+      </div>
+
+      <div id="mitraBox" class="full" hidden>
+        <label for="mitra_pick">Pilih Mitra Cabang</label>
+        <select id="mitra_pick">
+          <option value="">— pilih mitracabang —</option>
+        </select>
+      </div>
+
+      <div id="cabangBox" class="full" hidden>
+        <label for="cabang_pick">Pilih Cabang</label>
+        <select id="cabang_pick">
+          <option value="">— pilih cabang —</option>
+        </select>
+      </div>
+
+      <div class="full mt-12">
+        <button class="btn btn-primary" type="submit" style="width:100%">Daftar</button>
+      </div>
+    </form>
+
+    <div id="msg" class="center mt-12" style="min-height:18px"></div>
+
+    <!-- Kirim ulang verifikasi -->
+    <div class="center mt-8 fs-14">
+      Tidak menerima email verifikasi?
+      <button id="resendBtn" type="button" class="btn">Kirim ulang verifikasi</button>
+    </div>
+
+    <div class="center mt-12 fs-14">
+      Sudah terdaftar? <a href="index.html">Masuk di sini</a>
+    </div>
+  </section>
+
+  <!-- Init & logic (URUTAN PENTING) -->
+  <script src="js/env.js"></script>
+  <script type="module" src="js/supabase-init.js"></script>
+  <script type="module" src="js/register.js"></script>
+
+  <script>
+    // Cek konfirmasi password biar UX halus (fallback)
+    document.getElementById('regForm')?.addEventListener('submit', (e) => {
+      const p1 = document.getElementById('password')?.value || '';
+      const p2 = document.getElementById('password2')?.value || '';
+      if (p1 !== p2) {
+        e.preventDefault();
+        const msg = document.getElementById('msg');
+        if (msg) { msg.textContent = 'Password dan konfirmasi tidak sama.'; msg.style.color = '#b42318'; }
+      }
+    });
+  </script>
+</body>
+</html>

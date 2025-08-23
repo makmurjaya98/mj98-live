@@ -1,0 +1,193 @@
+﻿<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Direktori Pengguna — MJ98</title>
+  <link rel="stylesheet" href="style.css"/>
+
+  <!-- Gaya ringan untuk KOTAK FILTER (yang lain tetap ikut style.css) -->
+  <style>
+    :root{
+      --filter-yellow:#ece641;
+      --filter-title-yellow:#fff35a;
+      --filter-blue:#0b6bb8;
+    }
+    .filters-grid{
+      display:grid; grid-template-columns:repeat(3,minmax(260px,1fr));
+      gap:24px; align-items:stretch;
+    }
+    .filter-card{
+      background:linear-gradient(#f4ea7a,var(--filter-yellow));
+      border:3px solid var(--filter-blue); border-radius:24px;
+      box-shadow:0 3px 0 rgba(0,0,0,.12) inset,0 6px 14px rgba(0,0,0,.08);
+      padding:22px 18px 18px; min-height:180px;
+      display:flex; flex-direction:column; gap:14px;
+    }
+    .filter-title{
+      background:linear-gradient(#fff89b,var(--filter-title-yellow));
+      border:3px solid var(--filter-blue); border-radius:16px;
+      padding:8px 12px; text-align:center; font-weight:800;
+      letter-spacing:.5px; text-transform:uppercase;
+    }
+    .filter-desc{ text-align:center; font-weight:700; line-height:1.35; }
+    .filter-card select{
+      width:100%; height:42px; border-radius:14px; border:2px solid var(--filter-blue);
+      padding:6px 10px; font-weight:600; background:#fffef4; outline:none;
+    }
+
+    .data-grid{ margin-top:28px; display:grid; grid-template-columns:repeat(3,minmax(260px,1fr)); gap:24px; }
+    .data-card{ background:#f9e49a; border-radius:18px; padding:16px; box-shadow:0 6px 14px rgba(0,0,0,.08); border:2px solid rgba(0,0,0,.08); min-height:280px; }
+    .data-card h3{ margin:0 0 10px; font-size:18px; }
+    .search-row{ display:flex; gap:8px; margin-bottom:10px; }
+    .search-row input{ flex:1; height:40px; border-radius:10px; border:1px solid #d7c15b; padding:6px 10px; background:#fffef9; }
+    .table-mini{ width:100%; border-collapse:collapse; font-size:14px; }
+    .table-mini th,.table-mini td{ border-bottom:1px dashed #e5d57a; padding:6px 6px; vertical-align:top; }
+    .muted{ opacity:.7 }
+    .toolbar{ display:flex; gap:10px; flex-wrap:wrap; margin:8px 0 22px; }
+    .btn-soft{ background:#d9ecff; border:2px solid #86bdf1; color:#084a98; border-radius:12px; padding:8px 12px; font-weight:700; cursor:pointer; }
+
+    /* Tambahan ringan untuk logo */
+    .brand-left{ display:flex; justify-content:center; align-items:center; padding:16px 8px; }
+    .brand-left img{ height:44px; display:block; }
+    .headerbar{ display:flex; align-items:center; justify-content:space-between; gap:16px; }
+    .brand-right img{ height:40px; display:block; }
+
+    @media (max-width:1024px){ .filters-grid,.data-grid{ grid-template-columns:1fr; } }
+  </style>
+</head>
+
+<script type="module">
+  import('./js/global-alert.js?v=deploy-01').then(m => m.initGlobalAlerts?.());
+</script>
+
+<body class="page-dashboard">
+  <div class="layout">
+    <aside class="sidebar">
+      <!-- Logo kiri (emas) -->
+      <div class="brand-left">
+        <img src="assets/gold.png" alt="MJ98" loading="lazy"/>
+      </div>
+      <!-- Menu akan diisi otomatis oleh renderSidebar() -->
+      <nav class="menu"></nav>
+    </aside>
+
+    <main class="content">
+      <div class="container">
+        <div class="headerbar">
+          <div>
+            <h1>Direktori Pengguna</h1>
+            <p class="muted">Tampilkan daftar Mitra, Cabang, dan Link sesuai hak akses &amp; filter.</p>
+          </div>
+          <!-- Logo kanan (biru) -->
+          <div class="brand-right">
+            <img src="assets/blue.webp" alt="MJ98" loading="lazy"/>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <button id="btnExportFilter" class="btn-soft">Ekspor Excel sesuai filter</button>
+          <button id="btnExportAll" class="btn-soft">Ekspor Excel keseluruhan (sesuai akses)</button>
+        </div>
+
+        <!-- KOTAK FILTER -->
+        <section class="filters-grid" id="filters">
+          <!-- Mitra -->
+          <div class="filter-card" id="cardFilterMitra">
+            <div class="filter-title">Filter Mitra</div>
+            <select id="filter-mitra">
+              <option value="">— pilih mitra —</option>
+            </select>
+            <div class="filter-desc muted">Di sini akan muncul <b>username mitra</b> yang dipilih</div>
+          </div>
+
+          <!-- Cabang -->
+          <div class="filter-card" id="cardFilterCabang">
+            <div class="filter-title">Filter Cabang</div>
+            <select id="filter-cabang" disabled>
+              <option value="">— pilih cabang —</option>
+            </select>
+            <div class="filter-desc muted">Hanya menampilkan cabang yang berada di bawah <b>mitra</b> terpilih</div>
+          </div>
+
+          <!-- Link -->
+          <div class="filter-card" id="cardFilterLink">
+            <div class="filter-title">Filter Link</div>
+            <select id="filter-link" disabled>
+              <option value="">— pilih link —</option>
+            </select>
+            <div class="filter-desc muted">Hanya menampilkan link yang berada di bawah <b>cabang</b> terpilih</div>
+          </div>
+        </section>
+
+        <!-- DATA LIST -->
+        <section class="data-grid">
+          <!-- MITRA -->
+          <div class="data-card" id="boxMitra">
+            <h3>Daftar Mitra</h3>
+            <div class="search-row">
+              <input id="qMitra" type="search" placeholder="Filter Nama/Username/HP/Email/NIK…">
+            </div>
+            <div class="scroll">
+              <table class="table-mini">
+                <thead>
+                  <tr>
+                    <th>Nama Lengkap</th><th>Username</th><th>Alamat</th><th>No HP</th><th>Email</th><th>NIK</th>
+                  </tr>
+                </thead>
+                <tbody id="tblMitra"><tr><td colspan="6" class="muted">Tidak ada data</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- CABANG -->
+          <div class="data-card" id="boxCabang">
+            <h3>Daftar Cabang</h3>
+            <div class="search-row">
+              <input id="qCabang" type="search" placeholder="Filter Nama/Username/HP/Email/NIK…">
+            </div>
+            <div class="scroll">
+              <table class="table-mini">
+                <thead>
+                  <tr>
+                    <th>Nama Lengkap</th><th>Username</th><th>Alamat</th><th>No HP</th><th>Email</th><th>NIK</th>
+                  </tr>
+                </thead>
+                <tbody id="tblCabang"><tr><td colspan="6" class="muted">Tidak ada data</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- LINK -->
+          <div class="data-card" id="boxLink">
+            <h3>Daftar Link</h3>
+            <div class="search-row">
+              <input id="qLink" type="search" placeholder="Filter Nama/Username/HP/Email/NIK…">
+            </div>
+            <div class="scroll">
+              <table class="table-mini">
+                <thead>
+                  <tr>
+                    <th>Nama Lengkap</th><th>Username</th><th>Alamat</th><th>No HP</th><th>Email</th><th>NIK</th>
+                  </tr>
+                </thead>
+                <tbody id="tblLink"><tr><td colspan="6" class="muted">Tidak ada data</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- JS -->
+  <script type="module" src="js/daftar-user.js"></script>
+</body>
+
+<script type="module">
+  import { initGlobalAlerts } from './js/global-alert.js';
+  initGlobalAlerts();
+</script>
+<!-- Muat sekali; file akan auto-init sendiri -->
+<script type="module" src="./js/global-alert.js?v=beacon-1"></script>
+</html>

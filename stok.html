@@ -1,0 +1,247 @@
+﻿<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Stok – MJ98</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- favicon anti-404 -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23FFDE59'/%3E%3Ctext x='50%25' y='58%25' font-size='34' text-anchor='middle' fill='%230F172A' font-family='Arial, Helvetica, sans-serif'%3EMJ%3C/text%3E%3C/svg%3E">
+</head>
+
+<script>window.__MJ98_DISABLE_ANNOUNCEMENT_BEACON = true;</script>
+<script type="module" src="./js/global-alert.js"></script>
+
+<script type="module">
+  import('./js/global-alert.js?v=deploy-01').then(m => m.initGlobalAlerts?.());
+</script>
+
+<body class="page-dashboard">
+  <div class="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <img class="logo" src="assets/gold.png" alt="MJ98" />
+      <nav class="menu" aria-label="Menu utama">
+        <a class="btn" href="dashboard.html">Dashboard</a>
+        <a class="btn" href="laporan.html">Laporan</a>
+        <a class="btn" href="setoran.html">Setoran</a>
+        <a class="btn active" aria-current="page" href="stok.html">Stok</a>
+        <a class="btn" href="voucher.html">Voucher</a>
+        <a class="btn" href="pengumuman.html">Pengumuman</a>
+        <a class="btn" href="pengaturan.html">Pengaturan</a>
+      </nav>
+    </aside>
+
+    <!-- Konten -->
+    <main class="content">
+      <!-- Topbar -->
+      <div class="topbar">
+        <div class="flex items-center gap-10">
+          <img class="logo" src="assets/blue.webp" alt="MJ98" />
+          <strong>Stok</strong>
+          <span id="who" class="opacity-80"></span>
+        </div>
+        <div class="flex gap-8">
+          <button id="logout" class="btn" type="button">Logout</button>
+        </div>
+      </div>
+
+      <!-- Form “Jual Voucher” (Owner/Admin). Disembunyikan sampai stok.js verifikasi role -->
+      <section id="sellCard" class="card mb-12" style="display:none">
+        <h3 style="margin:0 0 10px 0">Jual Voucher</h3>
+        <form id="sellForm" class="form-grid" style="grid-template-columns:1fr 1fr 1fr 1fr">
+          <div class="full fs-12 opacity-75" style="margin-bottom:6px">
+            Input ini akan: (1) menambah voucher terjual, (2) mengurangi stok Link, (3) otomatis membuat baris di <code>sales</code>.
+          </div>
+          <div>
+            <label for="s_link">Link</label>
+            <select id="s_link" required>
+              <option value="">Pilih Link</option>
+            </select>
+          </div>
+          <div>
+            <label for="s_vtype">Jenis Voucher</label>
+            <select id="s_vtype" required>
+              <option value="">Pilih Voucher</option>
+            </select>
+          </div>
+          <div>
+            <label for="s_qty">Qty</label>
+            <input id="s_qty" type="number" min="1" step="1" placeholder="0" required />
+            <small id="sellWarn" class="fs-12 opacity-80"></small>
+          </div>
+          <div>
+            <label for="s_note">Catatan (opsional)</label>
+            <input id="s_note" type="text" placeholder="mis. shift pagi, event, dll" />
+          </div>
+          <div class="full flex gap-10" style="justify-content:flex-end;margin-top:6px">
+            <button id="btnSell" class="btn btn-primary" type="submit">Jual</button>
+            <button id="btnToSetoran" class="btn" type="button">Ke Setoran</button>
+          </div>
+          <div id="sellMsg" class="fs-12" style="min-height:18px;color:#7a5a00"></div>
+        </form>
+      </section>
+
+      <!-- Filter -->
+      <section class="card narrow mb-12">
+        <form id="filterForm" class="flex gap-10" style="flex-wrap:wrap;align-items:flex-end">
+          <div>
+            <label for="from">Dari</label>
+            <input id="from" name="from" type="date" />
+          </div>
+          <div>
+            <label for="to">Sampai</label>
+            <input id="to" name="to" type="date" />
+          </div>
+
+          <div>
+            <label for="f_vtype">Voucher</label>
+            <select id="f_vtype"><option value="">Semua</option></select>
+          </div>
+
+          <div>
+            <label for="f_mitra">Mitra</label>
+            <select id="f_mitra"><option value="">Semua</option></select>
+          </div>
+          <div>
+            <label for="f_cabang">Cabang</label>
+            <select id="f_cabang"><option value="">Semua</option></select>
+          </div>
+          <div>
+            <label for="f_link">Link</label>
+            <select id="f_link"><option value="">Semua</option></select>
+          </div>
+
+          <button id="btnApply" class="btn" type="submit">Terapkan</button>
+          <button id="btnRole" class="btn" type="button">Sesuai Role</button>
+
+          <div style="flex:1 1 auto"></div>
+
+          <!-- Tombol export (baru) -->
+          <button id="btnExportStok" class="btn" type="button" title="Ekspor tabel Stok Sekarang ke Excel">Export Stok (XLSX)</button>
+          <button id="btnExportMutasi" class="btn" type="button" title="Ekspor riwayat tambah stok ke Excel">Export Riwayat Stok (XLSX)</button>
+
+          <button id="btnAddStock" class="btn btn-primary" type="button">+ Tambah Stok ke Link</button>
+        </form>
+        <p class="fs-12 opacity-75" style="margin:.5rem 0 0 0">
+          * Semua penambahan stok dilakukan ke <b>Link</b>. Nilai Mitra &amp; Cabang otomatis merupakan akumulasi stok dari Link di bawahnya.
+        </p>
+      </section>
+
+      <!-- Ringkasan -->
+      <section id="summary" class="cards mb-12">
+        <div class="card">
+          <div class="fs-12 opacity-75">Total Stok</div>
+          <div id="sumTotal" class="fw-800" style="font-size:24px">0</div>
+        </div>
+        <div class="card">
+          <div class="fs-12 opacity-75">Varian Voucher</div>
+          <div id="sumVarian" class="fw-800" style="font-size:24px">0</div>
+        </div>
+        <div class="card">
+          <div class="fs-12 opacity-75">Tambah Stok (periode)</div>
+          <div id="sumTambah" class="fw-800" style="font-size:24px">0</div>
+        </div>
+      </section>
+
+      <!-- Stok sekarang -->
+      <section class="card" style="overflow:auto">
+        <h3 class="mb-10" style="margin:0 0 10px 0">Stok Sekarang</h3>
+        <table class="table" style="width:100%">
+          <thead>
+            <tr>
+              <th>Voucher</th>
+              <th style="text-align:right">Total Stok</th>
+              <th style="text-align:right">Terjual (periode)</th>
+            </tr>
+          </thead>
+          <tbody id="tblNow">
+            <tr>
+              <td colspan="3" style="padding:10px" class="opacity-80">Tidak ada data</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Riwayat Tambah Stok (disembunyikan; akses via tombol export) -->
+      <section id="mutasiSection" class="card" style="overflow:auto; display:none" aria-hidden="true">
+        <h3 class="mb-10" style="margin:0 0 10px 0">Riwayat Tambah Stok</h3>
+        <table class="table" style="width:100%">
+          <thead>
+            <tr>
+              <th>Waktu</th>
+              <th>Oleh</th>
+              <th>Mitra</th>
+              <th>Cabang</th>
+              <th>Link</th>
+              <th>Voucher</th>
+              <th style="text-align:right">Jumlah</th>
+              <th>Catatan</th>
+            </tr>
+          </thead>
+          <tbody id="tblMutasi">
+            <tr><td colspan="8" style="padding:10px" class="opacity-80">Tidak ada data</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </div>
+
+  <!-- Dialog Tambah Stok (Mitra → Cabang → Link WAJIB) -->
+  <dialog id="dlgAdd" style="max-width:980px;width:96%">
+    <form id="addForm" method="dialog" style="padding:6px 2px">
+      <h3 style="margin:0 0 12px 0">Tambah Stok Owner/Admin</h3>
+
+      <div class="form-grid" style="grid-template-columns:1fr 1fr">
+        <div>
+          <label for="a_vtype">Voucher</label>
+          <select id="a_vtype" required></select>
+        </div>
+        <div>
+          <label for="a_qty">Jumlah</label>
+          <input id="a_qty" type="number" min="1" step="1" required />
+          <small>Stok selalu ditambahkan ke <b>Link</b></small>
+        </div>
+        <div class="full">
+          <label for="a_note">Catatan (opsional)</label>
+          <input id="a_note" placeholder="mis. pengadaan, koreksi, dsb" />
+        </div>
+      </div>
+
+      <h4 class="mt-12" style="margin:12px 0 6px 0">Tujuan (wajib)</h4>
+      <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr">
+        <div>
+          <label for="a_mitra">Mitra</label>
+          <select id="a_mitra" required>
+            <option value="">Pilih</option>
+          </select>
+        </div>
+        <div>
+          <label for="a_cabang">Cabang</label>
+          <select id="a_cabang" required disabled>
+            <option value="">Pilih</option>
+          </select>
+        </div>
+        <div>
+          <label for="a_link">Link</label>
+          <select id="a_link" required disabled>
+            <option value="">Pilih</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex gap-10" style="justify-content:flex-end;margin-top:14px">
+        <button type="button" id="btnCancel" class="btn">Batal</button>
+        <button type="submit" class="btn btn-primary">Simpan</button>
+      </div>
+      <div id="addMsg" class="mt-8" style="min-height:18px;color:#ffbfbf"></div>
+    </form>
+  </dialog>
+
+  <!-- Modul JS -->
+  <script type="module" src="js/supabase-init.js"></script>
+  <script type="module" src="js/stok.js"></script>
+</body>
+<!-- Muat sekali; file akan auto-init sendiri -->
+<script type="module" src="./js/global-alert.js?v=beacon-1"></script>
+</html>

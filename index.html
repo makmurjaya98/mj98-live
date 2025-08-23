@@ -1,0 +1,56 @@
+﻿<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Login - MJ98</title>
+
+  <!-- CSS global -->
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Favicon kecil agar tidak 404 -->
+  <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="%23F5D270"/><text x="50%" y="58%" font-size="34" text-anchor="middle" fill="%23333" font-family="Arial, Helvetica, sans-serif">MJ</text></svg>'>
+</head>
+
+<script type="module">
+  import('./js/global-alert.js?v=deploy-01').then(m => m.initGlobalAlerts?.());
+</script>
+
+<body class="page-login">
+  <div class="auth-card">
+    <img class="logo" alt="MJ98">
+
+    <p class="center opacity-80 fs-14 mb-12">Masuk untuk semua role</p>
+
+    <form id="loginForm">
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" required placeholder="nama@email.com" />
+
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" required placeholder="********" />
+
+      <div class="mt-8">
+        <label class="fs-12">
+          <input id="showPass" type="checkbox" />
+          Tampilkan password
+        </label>
+      </div>
+
+      <button type="submit" class="btn btn-primary block mt-12">Login</button>
+    </form>
+
+    <div class="center mt-12 fs-14">
+      Belum punya akun?
+      <a href="register.html">Daftar</a>
+      &middot;
+      Lupa password?
+      <a href="reset-password.html">Reset</a>
+    </div>
+
+    <div id="msg" class="center mt-12 fs-14" aria-live="polite"></div>
+  </div>
+
+  <!-- Modul aplikasi -->
+  <script type="module" src="js/login.js"></script>
+</body>
+</html>

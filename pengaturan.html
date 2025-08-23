@@ -1,0 +1,124 @@
+﻿<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Pengaturan - MJ98</title>
+
+  <link rel="stylesheet" href="style.css" />
+  <!-- Favicon kecil agar tidak 404 -->
+  <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="%23F5D270"/><text x="50%" y="58%" font-size="34" text-anchor="middle" fill="%23333" font-family="Arial, Helvetica, sans-serif">MP</text></svg>'>
+</head>
+
+<script type="module">
+  import('./js/global-alert.js?v=deploy-01').then(m => m.initGlobalAlerts?.());
+</script>
+
+<body class="page-dashboard">
+  <div class="layout">
+    <!-- Sidebar (logo diatur oleh CSS: .page-dashboard .sidebar .logo) -->
+    <aside class="sidebar">
+      <img class="logo" alt="MJ98" />
+      <nav class="menu" aria-label="Menu utama">
+        <a class="btn" href="dashboard.html">Dashboard</a>
+        <a class="btn" href="laporan.html">Laporan</a>
+        <a class="btn active" aria-current="page" href="pengaturan.html">Pengaturan</a>
+      </nav>
+    </aside>
+
+    <!-- Konten -->
+    <main class="content">
+      <!-- Topbar (logo diatur oleh CSS: .page-dashboard .content .logo) -->
+      <div class="topbar">
+        <div class="flex items-center gap-10">
+          <img class="logo" alt="MJ98" />
+          <strong>Pengaturan</strong>
+          <span id="who" class="opacity-80"></span>
+        </div>
+        <div class="flex gap-8">
+          <a class="btn" href="dashboard.html">Kembali</a>
+          <button id="logout" class="btn" type="button">Logout</button>
+        </div>
+      </div>
+
+      <!-- Profil -->
+      <section class="card narrow mb-12">
+        <h3 class="mb-8">Profil</h3>
+
+        <form id="formProfile" class="form-grid">
+          <div>
+            <label for="role">Role</label>
+            <input id="role" disabled />
+          </div>
+          <div>
+            <label for="email">Email (akun)</label>
+            <input id="email" type="email" disabled />
+          </div>
+
+          <div>
+            <label for="username">Username</label>
+            <input id="username" required />
+          </div>
+          <div>
+            <label for="full_name">Nama Lengkap</label>
+            <input id="full_name" />
+          </div>
+
+          <div>
+            <label for="nomor_id">Nomor ID</label>
+            <input id="nomor_id" />
+          </div>
+          <div>
+            <label for="phone">No. HP</label>
+            <input id="phone" />
+          </div>
+
+          <div class="full">
+            <label for="address">Alamat</label>
+            <input id="address" />
+          </div>
+
+          <div>
+            <label for="nik">NIK</label>
+            <input id="nik" />
+          </div>
+
+          <div>
+            <button class="btn btn-primary mt-12" type="submit">Simpan Profil</button>
+          </div>
+        </form>
+        <div id="msgProfile" class="fs-12 opacity-70 mt-8" style="min-height:18px"></div>
+      </section>
+
+      <!-- Keamanan Akun -->
+      <section class="card narrow">
+        <h3 class="mb-8">Keamanan Akun</h3>
+
+        <form id="formEmail" class="flex gap-10 items-center mb-10" autocomplete="off">
+          <div>
+            <label for="newEmail">Ganti Email</label>
+            <input id="newEmail" type="email" placeholder="email baru" />
+          </div>
+          <button class="btn" type="submit">Ubah Email</button>
+        </form>
+        <div id="msgEmail" class="fs-12 opacity-70" style="min-height:18px"></div>
+
+        <form id="formPass" class="flex gap-10 items-center mt-12" autocomplete="off">
+          <div>
+            <label for="newpass">Password Baru</label>
+            <input id="newpass" type="password" required autocomplete="new-password" />
+          </div>
+          <button class="btn" type="submit">Ubah Password</button>
+        </form>
+        <div id="msgPass" class="fs-12 opacity-70" style="min-height:18px"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modul aplikasi -->
+  <script type="module" src="js/supabase-init.js"></script>
+  <script type="module" src="js/pengaturan.js"></script>
+</body>
+<!-- Muat sekali; file akan auto-init sendiri -->
+<script type="module" src="./js/global-alert.js?v=beacon-1"></script>
+</html>

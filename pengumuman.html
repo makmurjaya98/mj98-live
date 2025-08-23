@@ -1,0 +1,159 @@
+﻿<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Pengumuman - MJ98</title>
+
+  <link rel="stylesheet" href="style.css" />
+  <!-- favicon kecil agar tidak 404 -->
+  <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="%23c7d2fe"/><text x="50%" y="58%" font-size="34" text-anchor="middle" fill="%231e3a8a" font-family="Arial, Helvetica, sans-serif">MJ</text></svg>'>
+</head>
+
+<body class="page-dashboard">
+  <div class="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" aria-label="Navigasi utama">
+      <img class="logo" src="./assets/gold.png" alt="MJ98">
+      <nav class="menu">
+        <a class="btn" href="dashboard.html">Dashboard</a>
+        <a class="btn" href="kartu-tagihan.html">Kartu Tagihan</a>
+        <a class="btn" href="laporan.html">Laporan</a>
+        <a class="btn" href="setoran.html">Setoran</a>
+        <a class="btn" href="stok.html">Stok</a>
+        <a class="btn" href="voucher.html">Voucher</a>
+        <a class="btn" href="daftar-user.html">Daftar User</a>
+        <a class="btn active" aria-current="page" href="pengumuman.html">Pengumuman</a>
+        <a class="btn" href="pengaturan.html">Pengaturan</a>
+      </nav>
+    </aside>
+
+    <!-- Konten -->
+    <main class="content">
+      <!-- Topbar -->
+      <div class="topbar">
+        <div class="flex items-center gap-10">
+          <img class="logo" src="./assets/blue.webp" alt="MJ98">
+          <strong>Pengumuman</strong>
+          <span id="userRole" class="opacity-75" aria-live="polite"></span>
+        </div>
+        <div class="flex items-center gap-10">
+          <span id="greet" class="opacity-70" aria-live="polite"></span>
+          <button id="btnLogout" class="btn" type="button">Logout</button>
+        </div>
+      </div>
+
+      <div class="container">
+        <!-- Editor (hanya owner/admin) -->
+        <section id="editor" class="card hidden" aria-label="Editor Pengumuman">
+          <div class="tabs flex gap-8 mb-10" role="tablist" aria-label="Jenis editor">
+            <button id="tabNormal" class="btn active" type="button" role="tab" aria-controls="paneNormal" aria-selected="true">
+              Pengumuman Biasa
+            </button>
+            <button id="tabHadiah" class="btn" type="button" role="tab" aria-controls="paneHadiah" aria-selected="false">
+              Generator Top Seller
+            </button>
+          </div>
+
+          <!-- TAB 1: PENGUMUMAN BIASA -->
+          <div id="paneNormal" role="tabpanel" aria-labelledby="tabNormal">
+            <div class="form-grid">
+              <div>
+                <label for="fTitle">Judul</label>
+                <input id="fTitle" placeholder="Judul pengumuman" autocomplete="off">
+              </div>
+              <div>
+                <label for="fPinned">Pin di atas</label>
+                <select id="fPinned">
+                  <option value="false">Tidak</option>
+                  <option value="true">Ya</option>
+                </select>
+              </div>
+              <div>
+                <label for="fFrom">Tampil Mulai</label>
+                <input id="fFrom" type="date">
+              </div>
+              <div>
+                <label for="fTo">Sampai (opsional)</label>
+                <input id="fTo" type="date">
+              </div>
+              <div class="full">
+                <label for="fBody">Isi</label>
+                <textarea id="fBody" rows="6" placeholder="Tulis isi pengumuman..."></textarea>
+              </div>
+              <div class="full flex gap-8">
+                <button id="btnSave" class="btn" type="button">Simpan</button>
+                <button id="btnReset" class="btn" type="button">Bersihkan</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 2: GENERATOR TOP SELLER -->
+          <div id="paneHadiah" class="hidden" role="tabpanel" aria-labelledby="tabHadiah">
+            <div class="form-grid">
+              <div>
+                <label for="hFrom">Dari Tanggal</label>
+                <input id="hFrom" type="date">
+              </div>
+              <div>
+                <label for="hTo">Sampai Tanggal</label>
+                <input id="hTo" type="date">
+              </div>
+              <div>
+                <label for="hLimit">Jumlah Pemenang (Top N)</label>
+                <input id="hLimit" type="number" min="1" step="1" value="3" inputmode="numeric">
+              </div>
+              <div>
+                <label for="hMetric">Urut berdasarkan</label>
+                <select id="hMetric">
+                  <option value="total">Total Penjualan</option>
+                  <option value="qty">Jumlah Transaksi</option>
+                </select>
+              </div>
+              <div class="full flex gap-8 items-center">
+                <button id="btnHitung" class="btn" type="button">Hitung Top Seller</button>
+                <span id="hInfo" class="opacity-70" aria-live="polite"></span>
+              </div>
+            </div>
+
+            <div class="card mt-10">
+              <div class="fw-700 mb-8">Calon Pemenang</div>
+              <div id="hTable"></div>
+              <div class="mt-10">
+                <label for="hHadiahDefault">Hadiah default</label>
+                <input id="hHadiahDefault" class="pill" placeholder="mis: Uang tunai Rp 500.000">
+                <div class="mt-8">
+                  <button id="btnIsiKeForm" class="btn" type="button">Isi ke Form Pengumuman</button>
+                </div>
+                <span class="opacity-70">Generator ini akan mengisi <b>Judul</b> & <b>Isi</b> di tab "Pengumuman Biasa".</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- FEED -->
+        <section class="card" aria-label="Daftar Pengumuman">
+          <div class="flex items-center justify-between gap-12">
+            <h3 class="mb-10 mt-8">Daftar Pengumuman</h3>
+            <div class="flex items-center gap-8">
+              <label for="q">Cari judul/isi</label>
+              <input id="q" placeholder="Cari judul/isi...">
+              <button id="btnReload" class="btn" type="button">Muat</button>
+            </div>
+          </div>
+          <div id="feed"></div>
+          <div id="empty" class="center hidden opacity-70 mt-10">Belum ada pengumuman.</div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- Logic halaman -->
+  <script type="module" src="js/pengumuman.js"></script>
+
+  <!-- Global alerts (banner + beacon + sisa setoran). Auto-init on DOMContentLoaded. -->
+  <script type="module" src="js/global-alert.js?v=deploy-04"></script>
+
+  <noscript>Aktifkan JavaScript untuk melihat pengumuman & beacon.</noscript>
+</body>
+</html>

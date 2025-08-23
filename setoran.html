@@ -1,0 +1,162 @@
+﻿<!-- setoran.html — MJ98 (created_at only, RLS-friendly) -->
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Setoran – MJ98</title>
+
+  <link rel="stylesheet" href="style.css"/>
+  <!-- favicon anti-404 -->
+  <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="%23FFDE59"/><text x="50%" y="58%" font-size="34" text-anchor="middle" fill="%230F172A" font-family="Arial, Helvetica, sans-serif">MJ</text></svg>'>
+  <!-- (Opsional) SheetJS; JS juga lazy-load jika belum ada -->
+  <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+
+<script type="module">
+  import('./js/global-alert.js?v=deploy-01').then(m => m.initGlobalAlerts?.());
+</script>
+
+<body class="page-dashboard">
+  <div class="layout">
+    <!-- ===== Sidebar kiri ===== -->
+    <aside class="sidebar">
+      <img class="logo" alt="MJ98" />
+      <nav class="menu" aria-label="Menu utama">
+        <a class="btn" href="dashboard.html">Dashboard</a>
+        <a class="btn" href="laporan.html">Laporan</a>
+        <a class="btn active" aria-current="page" href="setoran.html">Setoran</a>
+        <a class="btn" href="stok.html">Stok</a>
+        <a class="btn" href="voucher.html">Voucher</a>
+        <a class="btn" href="pengumuman.html">Pengumuman</a>
+        <a class="btn" href="pengaturan.html">Pengaturan</a>
+      </nav>
+    </aside>
+
+    <!-- ===== Konten kanan ===== -->
+    <main class="content">
+      <div class="container">
+        <h1>Setoran Link – MJ98</h1>
+
+        <!-- Ringkasan -->
+        <div class="cards mt-12" id="cards">
+          <div class="card">
+            <div class="fs-12 opacity-70">Total Tagihan</div>
+            <div id="card-tagihan" class="fw-800" style="font-size:28px">Rp 0</div>
+            <div class="fs-12 opacity-70">Akumulasi tagihan link terpilih</div>
+          </div>
+          <div class="card">
+            <div class="fs-12 opacity-70">Total Disetor</div>
+            <div id="card-disetor" class="fw-800" style="font-size:28px">Rp 0</div>
+            <div class="fs-12 opacity-70">Diambil dari data setoran (berdasar <code>created_at</code>)</div>
+          </div>
+          <div class="card">
+            <div class="fs-12 opacity-70">Sisa Setoran</div>
+            <div id="card-sisa" class="fw-800" style="font-size:28px">Rp 0</div>
+            <div id="last-date" class="fs-12 opacity-70">Terakhir setor: -</div>
+          </div>
+          <div class="card">
+            <div class="fs-12 opacity-70">Status</div>
+            <span id="card-status" class="pill" aria-live="polite">-</span>
+            <div class="fs-12 opacity-70 mt-8">Semua tanggal mengacu ke <code>created_at</code></div>
+          </div>
+        </div>
+
+        <!-- Filter & Aksi -->
+        <section class="card mt-12">
+          <div class="form-grid">
+            <div>
+              <label for="filterMitra">Mitra Cabang</label>
+              <select id="filterMitra" aria-label="Filter mitra cabang"></select>
+            </div>
+            <div>
+              <label for="filterCabang">Cabang</label>
+              <select id="filterCabang" aria-label="Filter cabang"></select>
+            </div>
+            <div class="full">
+              <label for="linkSelect">Pilih Link</label>
+              <select id="linkSelect" aria-label="Pilih link"></select>
+            </div>
+            <div>
+              <label for="dateFrom">Dari Tanggal</label>
+              <input type="date" id="dateFrom" />
+            </div>
+            <div>
+              <label for="dateTo">Sampai Tanggal</label>
+              <input type="date" id="dateTo" />
+            </div>
+
+            <div class="full flex items-center justify-between gap-10">
+              <div class="flex items-center gap-10">
+                <button class="btn" id="btnReload" type="button">Muat</button>
+              </div>
+              <div class="flex items-center gap-10">
+                <button class="btn" id="btnExportCSV"  type="button">Export CSV</button>
+                <button class="btn" id="btnExportXLSX" type="button">Export Excel</button>
+                <button class="btn" id="btnPrint"      type="button">Print</button>
+                <button class="btn" id="btnAdd"        type="button" style="display:none">+ Tambah Setoran</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Notice -->
+        <section id="mismatch" class="card mt-12" style="display:none;background:#fff7e5;border:1px dashed #f0c36d;color:#7a5a00">
+          Catatan: Semua tanggal di halaman ini menggunakan kolom <b>created_at</b>. Jika angka berbeda dengan halaman lain, periksa sinkronisasi view/trigger.
+        </section>
+
+        <!-- Tabel -->
+        <section class="card mt-12" style="overflow:auto">
+          <h3 class="mb-10" style="margin:4px 0 10px">Riwayat Setoran</h3>
+          <table id="tbl" class="table" style="width:100%">
+            <thead>
+              <tr>
+                <th>Tanggal</th>
+                <th>Username Link</th>
+                <th class="t-right">Jumlah</th>
+                <th>Catatan</th>
+                <th>Diinput Oleh</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </section>
+
+        <!-- Dialog Tambah -->
+        <section id="dlg" class="card mt-12" style="display:none">
+          <h3>Tambah Setoran</h3>
+          <div class="form-grid">
+            <div>
+              <label for="fLink">Link</label>
+              <select id="fLink"></select>
+            </div>
+            <div>
+              <!-- Hanya untuk tampilan; DB pakai created_at otomatis -->
+              <label for="fTanggal">Waktu Input (otomatis)</label>
+              <input type="datetime-local" id="fTanggal" disabled />
+            </div>
+            <div>
+              <label for="fAmount">Jumlah (Rp)</label>
+              <input type="number" id="fAmount" min="0" step="1000" placeholder="0" />
+            </div>
+            <div>
+              <label for="fCatatan">Catatan</label>
+              <textarea id="fCatatan" rows="2" placeholder="opsional"></textarea>
+            </div>
+          </div>
+          <div id="precalc" class="mt-12 fs-12 opacity-70">Sisa sebelum setor: Rp 0 • Total tagihan: Rp 0</div>
+          <div class="mt-12 flex gap-10">
+            <button class="btn" id="btnSave" type="button">Simpan</button>
+            <button class="btn" id="btnCancel" type="button">Batal</button>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- JS (modular) -->
+  <script type="module" src="js/setoran.js"></script>
+</body>
+<!-- Muat sekali; file akan auto-init sendiri -->
+<script type="module" src="./js/global-alert.js?v=beacon-1"></script>
+</html>

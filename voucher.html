@@ -1,0 +1,187 @@
+﻿<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Voucher — MJ98</title>
+
+  <link rel="stylesheet" href="style.css" />
+  <!-- favicon inline biar tidak 404 -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23f5d270'/%3E%3Ctext x='10' y='46' font-size='36' fill='%23334'%3EMP%3C/text%3E%3C/svg%3E" />
+
+  <!-- Dependensi (untuk xlsx export) -->
+  <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+
+<script>window.__MJ98_DISABLE_ANNOUNCEMENT_BEACON = true;</script>
+<script type="module" src="./js/global-alert.js"></script>
+
+<script type="module">
+  import('./js/global-alert.js?v=deploy-01').then(m => m.initGlobalAlerts?.());
+</script>
+
+<body class="page-dashboard">
+  <div class="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar" aria-label="Menu utama">
+      <img class="logo" src="assets/gold.png" alt="MJ98" />
+      <nav class="menu">
+        <a class="btn" href="dashboard.html">Dashboard</a>
+        <a class="btn" href="laporan.html">Laporan</a>
+        <a class="btn" href="setoran.html">Setoran</a>
+        <a class="btn" href="stok.html">Stok</a>
+        <a class="btn active" aria-current="page" href="voucher.html">Voucher</a>
+        <a class="btn" href="pengumuman.html">Pengumuman</a>
+        <a class="btn" href="pengaturan.html">Pengaturan</a>
+      </nav>
+    </aside>
+
+    <!-- Konten -->
+    <main class="content">
+      <!-- Topbar -->
+      <div class="topbar">
+        <div class="flex items-center gap-10">
+          <img class="logo" src="assets/blue.webp" alt="MJ98" />
+          <strong>Voucher</strong>
+          <span id="who" class="opacity-80" style="margin-left:8px"></span>
+        </div>
+        <div class="flex gap-8">
+          <button id="btnAddType"  class="btn" type="button">Tambah Tipe</button>
+          <button id="btnAddShare" class="btn" type="button">Tambah Share</button>
+          <button id="exportXlsx"  class="btn" type="button">Excel</button>
+        </div>
+      </div>
+
+      <!-- TIPE VOUCHER -->
+      <section class="card mb-12" style="overflow:auto">
+        <div class="flex items-center justify-between mb-10" style="gap:10px">
+          <h3 style="margin:0">Tipe Voucher</h3>
+          <div class="flex items-center gap-10">
+            <label class="fs-14 flex items-center gap-8" for="onlyMine" style="gap:6px">
+              <input id="onlyMine" type="checkbox" checked />
+              Hanya data saya
+            </label>
+            <input id="qType" class="minw-260" placeholder="cari jenis...">
+          </div>
+        </div>
+        <p class="opacity-80 mt-8 mb-8" style="margin-top:0">
+          Buat <em>Tipe</em> = nama + harga + durasi (disimpan sebagai jam). Aktivasi per cabang di <em>Share Settings</em>.
+        </p>
+        <table id="tblTypes" style="width:100%;border-collapse:collapse"></table>
+      </section>
+
+      <!-- SHARE SETTINGS -->
+      <section class="card" style="overflow:auto">
+        <h3 class="flex items-center gap-10" style="margin:0 0 8px 0;flex-wrap:wrap">
+          <span>Share Settings</span>
+          <input id="flt_mitra"  list="list_mitra"  placeholder="filter mitracabang_id" class="minw-260" style="max-width:220px">
+          <input id="flt_cabang" list="list_cabang" placeholder="filter cabang_id" class="minw-260" style="max-width:220px">
+          <button id="btnFilter" class="btn" type="button">Filter</button>
+          <button id="btnClear"  class="btn" type="button">Bersihkan</button>
+        </h3>
+        <table id="tblShares" style="width:100%;border-collapse:collapse"></table>
+      </section>
+    </main>
+  </div>
+
+  <!-- DIALOG: TIPE VOUCHER -->
+  <dialog id="dlgType" style="max-width:760px;width:96%">
+    <form id="formType" method="dialog" style="min-width:560px">
+      <h3 id="dlgTypeTitle" style="margin-top:0">Tambah Tipe</h3>
+      <input type="hidden" id="type_id" />
+      <div class="form-grid" style="gap:10px">
+        <div class="full">
+          <label for="type_jenis">jenis_voucher</label>
+          <input id="type_jenis" required />
+        </div>
+        <div>
+          <label for="type_pokok">harga_pokok</label>
+          <input id="type_pokok" type="number" step="1" min="0" />
+        </div>
+        <div>
+          <label for="type_jual">harga_jual</label>
+          <input id="type_jual" type="number" step="1" min="0" />
+        </div>
+        <div>
+          <label for="type_dur_num">durasi (angka)</label>
+          <input id="type_dur_num" type="number" step="1" min="0" placeholder="mis. 2 atau 30" />
+        </div>
+        <div>
+          <label for="type_dur_unit">unit durasi</label>
+          <select id="type_dur_unit">
+            <option value="jam">Jam</option>
+            <option value="hari">Hari</option>
+          </select>
+        </div>
+        <div class="full">
+          <label for="type_owner">owner_id (opsional)</label>
+          <input id="type_owner" placeholder="default = owner org" />
+        </div>
+      </div>
+      <div class="flex gap-8" style="justify-content:flex-end;margin-top:12px">
+        <button id="btnTypeSave" class="btn btn-primary" value="save">Simpan</button>
+        <button class="btn" value="cancel">Batal</button>
+      </div>
+      <div id="msgType" class="opacity-80 mt-8"></div>
+    </form>
+  </dialog>
+
+  <!-- DIALOG: SHARE -->
+  <dialog id="dlgShare" style="max-width:760px;width:96%">
+    <form id="formShare" method="dialog" style="min-width:560px">
+      <h3 id="dlgShareTitle" style="margin-top:0">Tambah Share</h3>
+      <input type="hidden" id="share_id" />
+      <div class="form-grid" style="gap:10px">
+        <div>
+          <label for="share_vtype">voucher_type_id</label>
+          <input id="share_vtype" list="list_vtype" placeholder="pilih/ketik id tipe voucher" required />
+          <datalist id="list_vtype"></datalist>
+        </div>
+        <div>
+          <label for="share_mitra">mitracabang_id</label>
+          <input id="share_mitra" list="list_mitra" placeholder="opsional" />
+          <datalist id="list_mitra"></datalist>
+        </div>
+        <div>
+          <label for="share_cabang">cabang_id</label>
+          <input id="share_cabang" list="list_cabang" placeholder="opsional" />
+          <datalist id="list_cabang"></datalist>
+        </div>
+        <div>
+          <label for="share_kl">komisi_link_persen (0..100)</label>
+          <input id="share_kl" placeholder="cth: 5 atau 5%" />
+        </div>
+        <div>
+          <label for="share_kc">komisi_cabang_persen (0..100)</label>
+          <input id="share_kc" placeholder="cth: 10 atau 10%" />
+        </div>
+        <div>
+          <label for="share_km">komisi_mitra_persen (0..100)</label>
+          <input id="share_km" placeholder="cth: 7 atau 7%" />
+        </div>
+        <div>
+          <label for="share_cbg">share_cabang (Rp)</label>
+          <input id="share_cbg" placeholder="cth: 1000" />
+        </div>
+        <div>
+          <label for="share_lk">share_link (Rp)</label>
+          <input id="share_lk" placeholder="cth: 2000" />
+        </div>
+        <div class="full">
+          <label for="share_owner">owner_id (opsional)</label>
+          <input id="share_owner" placeholder="default = owner org" />
+        </div>
+      </div>
+      <div class="flex gap-8" style="justify-content:flex-end;margin-top:12px">
+        <button id="btnShareSave" class="btn btn-primary" value="save">Simpan</button>
+        <button class="btn" value="cancel">Batal</button>
+      </div>
+      <div id="msgShare" class="opacity-80 mt-8"></div>
+    </form>
+  </dialog>
+
+  <!-- Module scripts (cache-busted agar pasti terbaru) -->
+  <script type="module" src="js/supabase-init.js?v=2025-08-16"></script>
+  <script type="module" src="js/voucher.js?v=2025-08-16"></script>
+</body>
+</html>

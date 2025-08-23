@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Kartu Tagihan - MJ98</title>
+
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="%23F5D270"/><text x="50%" y="58%" font-size="34" text-anchor="middle" fill="%23333" font-family="Arial, Helvetica, sans-serif">MJ</text></svg>'>
+
+  <!-- Sedikit gaya agar alert/pill tampil bagus walau style.css belum punya -->
+  <style>
+    .cards{display:grid;grid-template-columns:repeat(3,minmax(220px,1fr));gap:12px}
+    .card.alert{border:2px solid #dc2626; box-shadow:0 0 0 3px rgba(220,38,38,.1)}
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;background:#dc2626;color:#fff;font-weight:700}
+    .pill.hidden{display:none}
+    .fs-12{font-size:12px}.fw-800{font-weight:800}.opacity-70{opacity:.7}
+    .mt-12{margin-top:12px}.mt-20{margin-top:20px}.gap-10{gap:10px}.gap-8{gap:8px}
+    .flex{display:flex}.items-center{align-items:center}.justify-between{justify-content:space-between}
+    .t-right{text-align:right}.t-left{text-align:left}
+    @media (max-width:900px){.cards{grid-template-columns:1fr}}
+  </style>
+</head>
+
+<script type="module">
+  import('./js/global-alert.js?v=deploy-01').then(m => m.initGlobalAlerts?.());
+</script>
+
+<body class="page-dashboard">
+  <div class="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <img class="logo" alt="MJ98">
+      <nav class="menu" aria-label="Menu utama">
+        <a class="btn" href="dashboard.html">Dashboard</a>
+        <!-- Pindahkan ke posisi 2 -->
+        <a class="btn active" aria-current="page" href="kartu-tagihan.html">Kartu Tagihan</a>
+        <a class="btn" href="laporan.html">Laporan</a>
+        <a class="btn" href="setoran.html">Setoran</a>
+        <a class="btn" href="stok.html">Stok</a>
+        <a class="btn" href="voucher.html">Voucher</a>
+        <a class="btn" href="pengumuman.html">Pengumuman</a>
+        <a class="btn" href="pengaturan.html">Pengaturan</a>
+      </nav>
+    </aside>
+
+    <!-- Konten -->
+    <main class="content">
+      <div class="container">
+        <!-- Topbar -->
+        <div class="topbar flex items-center justify-between">
+          <div class="flex items-center gap-10">
+            <img class="logo" alt="MJ98">
+            <strong>Kartu Tagihan</strong>
+            <span id="who" class="opacity-70"></span>
+          </div>
+          <div class="flex items-center gap-8">
+            <button id="print"  class="btn">Print</button>
+            <button id="logout" class="btn">Logout</button>
+          </div>
+        </div>
+
+        <!-- Filter -->
+        <section class="card mt-12">
+          <form id="filterForm" class="flex items-center gap-10 flex-wrap">
+            <div>
+              <label for="from">Dari</label>
+              <input id="from" name="from" type="date" />
+            </div>
+            <div>
+              <label for="to">Sampai</label>
+              <input id="to" name="to" type="date" />
+            </div>
+            <!-- Hirarki -->
+            <div id="wrapMitra">
+              <label for="fltMitra">Mitra</label>
+              <select id="fltMitra" name="fltMitra" data-role="mitra">
+                <option value="">(Semua Mitra)</option>
+              </select>
+            </div>
+            <div id="wrapCabang">
+              <label for="fltCabang">Cabang</label>
+              <select id="fltCabang" name="fltCabang" data-role="cabang">
+                <option value="">(Semua Cabang)</option>
+              </select>
+            </div>
+            <div id="wrapLink">
+              <label for="fltLink">Link</label>
+              <select id="fltLink" name="fltLink" data-role="link">
+                <option value="">(Semua Link)</option>
+              </select>
+            </div>
+
+            <button id="go" class="btn" type="submit">Terapkan</button>
+          </form>
+        </section>
+
+        <!-- 3 Kartu -->
+        <section class="cards mt-12" id="cardsWrap">
+
+          <!-- Tagihan LINK → CABANG -->
+          <div class="card" id="card-link">
+            <div class="fs-12 opacity-70">Tagihan Link → Cabang</div>
+            <div class="fw-800" style="font-size:24px" id="link-tagihan">Rp 0</div>
+            <div class="flex items-center justify-between mt-12">
+              <div>Setoran Link</div><div id="link-setoran" class="fw-800">Rp 0</div>
+            </div>
+            <div class="flex items-center justify-between mt-12">
+              <div>Sisa Setoran Link</div><div id="link-sisa" class="fw-800">Rp 0</div>
+            </div>
+            <div class="mt-12"><span id="link-pill" class="pill hidden">ALERT: SISA SETORAN LINK</span></div>
+          </div>
+
+          <!-- Tagihan CABANG → MITRA -->
+          <div class="card" id="card-cabang">
+            <div class="fs-12 opacity-70">Tagihan Cabang → Mitra</div>
+            <div class="fw-800" style="font-size:24px" id="cabang-tagihan">Rp 0</div>
+            <div class="flex items-center justify-between mt-12">
+              <div>Setoran Cabang</div><div id="cabang-setoran" class="fw-800">Rp 0</div>
+            </div>
+            <div class="flex items-center justify-between mt-12">
+              <div>Sisa Setoran Cabang</div><div id="cabang-sisa" class="fw-800">Rp 0</div>
+            </div>
+            <div class="mt-12"><span id="cabang-pill" class="pill hidden">ALERT: SISA SETORAN CABANG</span></div>
+          </div>
+
+          <!-- Tagihan MITRA → OWNER -->
+          <div class="card" id="card-mitra">
+            <div class="fs-12 opacity-70">Tagihan Mitra → Owner</div>
+            <div class="fw-800" style="font-size:24px" id="mitra-tagihan">Rp 0</div>
+            <div class="flex items-center justify-between mt-12">
+              <div>Setoran Mitra</div><div id="mitra-setoran" class="fw-800">Rp 0</div>
+            </div>
+            <div class="flex items-center justify-between mt-12">
+              <div>Sisa Setoran Mitra</div><div id="mitra-sisa" class="fw-800">Rp 0</div>
+            </div>
+            <div class="mt-12"><span id="mitra-pill" class="pill hidden">ALERT: SISA SETORAN MITRA</span></div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Script -->
+  <script type="module" src="js/kartu-tagihan.js"></script>
+</body>
+<!-- Muat sekali; file akan auto-init sendiri -->
+<script type="module" src="./js/global-alert.js?v=beacon-1"></script>
+</html>
