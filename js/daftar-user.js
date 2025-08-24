@@ -41,15 +41,18 @@ const state = {
   me: null,
   role: null,
   ownerId: null,
+
   selMitra: null,
   selCabang: null,
   selLink: null,
+
   cache: { mitra: [], cabang: [], link: [] },
+
+  // chip yang sedang dipilih per kartu (opsional)
+  chipSel: { mitra: null, cabang: null, link: null },
 };
 
 const el  = (sel) => document.querySelector(sel);
-const els = (sel) => Array.from(document.querySelectorAll(sel));
-
 const safeText    = (v) => (v ?? "").toString().trim();
 const pickPhone   = (r) => safeText(r.phone_number ?? r.phone ?? "");
 const pickIdNum   = (r) => safeText(r.nik ?? r.id_number ?? r.nomor_id ?? "");
@@ -57,9 +60,7 @@ const pickAddress = (r) => safeText(r.address ?? "");
 const pickName    = (r) => safeText(r.full_name ?? r.username ?? "");
 
 /* === util: dukung dua versi id (#filter-* dan #sel*) tanpa memotong kode === */
-function pickSel(idA, idB){
-  return el(idA) ?? el(idB) ?? null;
-}
+function pickSel(idA, idB){ return el(idA) ?? el(idB) ?? null; }
 const elsFilter = {
   mitra : () => pickSel("#filter-mitra", "#selMitra"),
   cabang: () => pickSel("#filter-cabang", "#selCabang"),
@@ -133,7 +134,97 @@ async function fetchProfilesByRole(roleWant, extraFilter) {
 }
 
 /* ==========================
-   Isi dropdown filter
+   Panel Nilai (chips)
+   ========================== */
+
+function getValueByKey(row, key) {
+  switch (key) {
+    case "nama":     return pickName(row);
+    case "username": return safeText(row.username);
+    case "alamat":   return pickAddress(row);
+    case "hp":       return pickPhone(row);
+    case "email":    return safeText(row.email);
+    case "nik":      return pickIdNum(row);
+    default:         return "";
+  }
+}
+
+function uniqueValues(rows, key) {
+  const s = new Set();
+  for (const r of rows) {
+    const v = getValueByKey(r, key);
+    if (v) s.add(v); // hanya nilai non-kosong yang tampil sebagai chip
+  }
+  return Array.from(s).sort((a,b)=>a.localeCompare(b,"id",{sensitivity:"base"}));
+}
+
+/** Tulis chip + bind klik (single-select). */
+function writeChips(container, values, scope, emptyText="Tidak ada data") {
+  if (!container) return;
+  container.innerHTML = "";
+  if (!values.length) {
+    const span = document.createElement("span");
+    span.className = "muted";
+    span.textContent = emptyText;
+    container.appendChild(span);
+    state.chipSel[scope] = null;
+    return;
+  }
+  const activeVal = state.chipSel[scope];
+  for (const val of values) {
+    const chip = document.createElement("div");
+    chip.className = "chip";
+    chip.textContent = val;
+    if (activeVal && activeVal === val) chip.classList.add("active");
+    chip.addEventListener("click", () => {
+      // toggle single select
+      if (state.chipSel[scope] === val) {
+        state.chipSel[scope] = null;
+      } else {
+        state.chipSel[scope] = val;
+      }
+      // refresh highlight saja (tanpa rerender mahal)
+      Array.from(container.querySelectorAll(".chip")).forEach(c=>{
+        c.classList.toggle("active", c.textContent === state.chipSel[scope]);
+      });
+    });
+    container.appendChild(chip);
+  }
+}
+
+/** Hormati pilihan entitas di atasnya (selMitra/selCabang/selLink) saat membuat chips. */
+function renderChipsFor(scope){
+  const bySel  = el(scope === "mitra" ? "#byMitra" : scope === "cabang" ? "#byCabang" : "#byLink");
+  const chipsC = el(scope === "mitra" ? "#chipsMitra" : scope === "cabang" ? "#chipsCabang" : "#chipsLink");
+  if (!bySel || !chipsC) return;
+
+  const key = bySel.value || "nama";
+  let rows =
+    scope === "mitra"  ? state.cache.mitra :
+    scope === "cabang" ? state.cache.cabang :
+                         state.cache.link;
+
+  // batasi ke entitas yang dipilih pada level yang sama (jika ada)
+  if (scope === "mitra"  && state.selMitra)  rows = rows.filter(r => r.id === state.selMitra);
+  if (scope === "cabang" && state.selCabang) rows = rows.filter(r => r.id === state.selCabang);
+  if (scope === "link"   && state.selLink)   rows = rows.filter(r => r.id === state.selLink);
+
+  // placeholder saat parent belum dipilih
+  if (scope === "cabang" && !state.selMitra && rows.length === 0) {
+    writeChips(chipsC, [], scope, "Pilih mitra lebih dulu");
+    return;
+  }
+  if (scope === "link" && !state.selCabang && rows.length === 0) {
+    writeChips(chipsC, [], scope, "Pilih cabang lebih dulu");
+    return;
+  }
+
+  const values = uniqueValues(rows, key);
+  writeChips(chipsC, values, scope);
+}
+
+/* ==========================
+   Isi dropdown filter hirarki
    ========================== */
 
 function setOptions(sel, rows, placeholder){
@@ -158,6 +249,8 @@ async function loadMitraOptions() {
   state.cache.mitra = rows;
   setOptions(sel, rows, "— pilih mitra —");
   sel.disabled = rows.length === 0;
+
+  renderChipsFor("mitra");
 }
 
 async function loadCabangOptions() {
@@ -168,7 +261,7 @@ async function loadCabangOptions() {
     setOptions(sel, [], "— pilih mitra dulu —");
     sel.disabled = true;
     state.cache.cabang = [];
-    renderRows("#tblCabang", [], el("#qCabang")?.value || "");
+    renderChipsFor("cabang");
     return;
   }
 
@@ -179,6 +272,8 @@ async function loadCabangOptions() {
 
   setOptions(sel, rows, "— pilih cabang —");
   sel.disabled = rows.length === 0;
+
+  renderChipsFor("cabang");
 }
 
 async function loadLinkOptions() {
@@ -189,7 +284,7 @@ async function loadLinkOptions() {
     setOptions(sel, [], "— pilih cabang dulu —");
     sel.disabled = true;
     state.cache.link = [];
-    renderRows("#tblLink", [], el("#qLink")?.value || "");
+    renderChipsFor("link");
     return;
   }
 
@@ -200,63 +295,8 @@ async function loadLinkOptions() {
 
   setOptions(sel, rows, "— pilih link —");
   sel.disabled = rows.length === 0;
-}
 
-/* ==========================
-   Render tabel
-   ========================== */
-
-// otomatis pakai <tbody> kalau selector yang diberikan adalah <table>
-function resolveTbody(tbodySel){
-  const node = el(tbodySel);
-  if (!node) return null;
-  if (node.tagName === "TBODY") return node;
-  return node.querySelector("tbody") || node; // fallback kompat lama
-}
-
-function renderRows(tbodySel, rows, q = "") {
-  const tb = resolveTbody(tbodySel);
-  if (!tb) return;
-  const term = (q || "").toLowerCase().trim();
-
-  const filtered = rows.filter((r) => {
-    if (!term) return true;
-    const hay = [
-      pickName(r),
-      safeText(r.username),
-      pickAddress(r),
-      pickPhone(r),
-      safeText(r.email),
-      pickIdNum(r),
-    ]
-      .join(" | ")
-      .toLowerCase();
-    return hay.includes(term);
-  });
-
-  if (!filtered.length) {
-    tb.innerHTML = `<tr><td colspan="6" class="text-center">Tidak ada data</td></tr>`;
-    return;
-  }
-
-  tb.innerHTML = filtered
-    .map((r) => {
-      const nm   = pickName(r) || "-";
-      const un   = safeText(r.username) || "-";
-      const addr = pickAddress(r) || "-";
-      const hp   = pickPhone(r) || "-";
-      const mail = safeText(r.email) || "-";
-      const idn  = pickIdNum(r) || "-";
-      return `<tr>
-        <td>${nm}</td>
-        <td>${un}</td>
-        <td>${addr}</td>
-        <td>${hp}</td>
-        <td>${mail}</td>
-        <td>${idn}</td>
-      </tr>`;
-    })
-    .join("");
+  renderChipsFor("link");
 }
 
 /* ==========================
@@ -308,6 +348,38 @@ function downloadCsv(filename, rows) {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
+/* ===== Helper untuk ekspor sesuai filter (tanpa mengubah fungsi lain) ===== */
+
+// kembalikan rows pada scope, sudah menghormati hirarki pilihan di atas
+function baseRowsFor(scope) {
+  let rows =
+    scope === "mitra"  ? state.cache.mitra :
+    scope === "cabang" ? state.cache.cabang :
+                         state.cache.link;
+
+  if (scope === "mitra"  && state.selMitra)  rows = rows.filter(r => r.id === state.selMitra);
+  if (scope === "cabang" && state.selCabang) rows = rows.filter(r => r.id === state.selCabang);
+  if (scope === "link"   && state.selLink)   rows = rows.filter(r => r.id === state.selLink);
+  return rows;
+}
+
+// filter rows sesuai dropdown kolom + chip aktif (jika ada)
+// jika tidak ada chip aktif, hanya ambil rows yang nilainya termasuk daftar chip (non-kosong)
+function filteredRowsFor(scope) {
+  const bySel = el(scope === "mitra" ? "#byMitra" : scope === "cabang" ? "#byCabang" : "#byLink");
+  const key   = bySel?.value || "nama";
+  const rows  = baseRowsFor(scope);
+
+  const activeVal = state.chipSel[scope];
+  if (activeVal) {
+    return rows.filter(r => getValueByKey(r, key) === activeVal);
+  }
+  // Tidak ada chip aktif → ambil semua baris yang nilainya non-kosong & muncul sebagai chip
+  const allowedValues = new Set(uniqueValues(rows, key)); // hanya non-kosong
+  if (allowedValues.size === 0) return []; // tidak ada nilai tampil
+  return rows.filter(r => allowedValues.has(getValueByKey(r, key)));
+}
+
 /* ==========================
    Event bindings
    ========================== */
@@ -319,47 +391,47 @@ function bindFilterEvents() {
 
   selM?.addEventListener("change", async (e) => {
     state.selMitra = e.target.value || null;
-    // reset setelah mitra berganti
     state.selCabang = null;
+    state.selLink = null;
+    state.chipSel.mitra = null;
+    state.chipSel.cabang = null;
+    state.chipSel.link = null;
     await loadCabangOptions();
     await loadLinkOptions();
-
-    renderRows("#tblCabang", state.cache.cabang, el("#qCabang")?.value || "");
-    renderRows("#tblLink", state.cache.link, el("#qLink")?.value || "");
+    renderChipsFor("mitra");
   });
 
   selC?.addEventListener("change", async (e) => {
     state.selCabang = e.target.value || null;
+    state.selLink = null;
+    state.chipSel.cabang = null;
+    state.chipSel.link = null;
     await loadLinkOptions();
-    renderRows("#tblLink", state.cache.link, el("#qLink")?.value || "");
+    renderChipsFor("cabang");
   });
 
   selL?.addEventListener("change", (e) => {
     state.selLink = e.target.value || null;
+    state.chipSel.link = null;
+    renderChipsFor("link");
   });
 
-  // quick search
-  el("#qMitra") ?.addEventListener("input", (e) => {
-    renderRows("#tblMitra", state.cache.mitra, e.target.value);
-  });
-  el("#qCabang")?.addEventListener("input", (e) => {
-    renderRows("#tblCabang", state.cache.cabang, e.target.value);
-  });
-  el("#qLink")  ?.addEventListener("input", (e) => {
-    renderRows("#tblLink", state.cache.link, e.target.value);
-  });
+  // perubahan dropdown kolom → regenerasi chips & reset chip aktif pada scope itu
+  el("#byMitra") ?.addEventListener("change", () => { state.chipSel.mitra  = null; renderChipsFor("mitra");  });
+  el("#byCabang")?.addEventListener("change", () => { state.chipSel.cabang = null; renderChipsFor("cabang"); });
+  el("#byLink")  ?.addEventListener("change", () => { state.chipSel.link   = null; renderChipsFor("link");   });
 
-  // export (sesuai filter yang sedang tampil)
+  // Ekspor sesuai filter → gunakan subset per scope
   btnExportFilter()?.addEventListener("click", () => {
     const rows = [
-      ...state.cache.mitra,
-      ...state.cache.cabang,
-      ...state.cache.link,
+      ...filteredRowsFor("mitra"),
+      ...filteredRowsFor("cabang"),
+      ...filteredRowsFor("link"),
     ];
     downloadCsv("direktori-filter.csv", rows);
   });
 
-  // export keseluruhan (akses sesuai policy user login)
+  // Ekspor keseluruhan (akses sesuai policy user login) — TANPA filter UI
   btnExportAll()?.addEventListener("click", async () => {
     const [m, c, l] = await Promise.all([
       fetchProfilesByRole(ROLE_MITRA),
@@ -385,14 +457,10 @@ async function boot() {
   // owner: owner_id = id sendiri; user lain: owner_id diisi saat dibuat
   state.ownerId = state.me.owner_id || state.me.id;
 
-  // Muat dropdown & tabel awal
+  // Muat dropdown hirarki & panel nilai
   await loadMitraOptions();
   await loadCabangOptions(); // akan kosong jika belum pilih mitra
   await loadLinkOptions();   // akan kosong jika belum pilih cabang
-
-  renderRows("#tblMitra", state.cache.mitra, el("#qMitra")?.value || "");
-  renderRows("#tblCabang", state.cache.cabang, el("#qCabang")?.value || "");
-  renderRows("#tblLink", state.cache.link, el("#qLink")?.value || "");
 
   bindFilterEvents();
 }
@@ -402,4 +470,3 @@ if (document.readyState === "loading") {
 } else {
   boot();
 }
-
