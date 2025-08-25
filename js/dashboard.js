@@ -157,6 +157,46 @@ async function fetchSalesInPeriod(){
 function sum(arr, pick){ let x=0; for(const r of (arr||[])) x += Number(pick(r)||0); return x; }
 const sumQty = (rows) => sum(rows, r => r?.qty);
 
+/* ---------- Hitung JUMLAH USER ala Daftar User (profiles) ---------- */
+async function countMultiRole(roles, extra){
+  let q = supabase.from('profiles')
+    .select('id', { count:'exact', head:true })
+    .eq('owner_id', OWNER_ID)
+    .in('role', roles);
+  if (typeof extra === 'function') q = extra(q);
+  const { count, error } = await q;
+  if (error) return 0;
+  return count || 0;
+}
+
+async function directoryCounts(){
+  const r = String(me.role||'').toLowerCase();
+
+  if (r==='owner' || r==='admin'){
+    const [mitra, cabang, link] = await Promise.all([
+      countMultiRole(['mitracabang','mitra-cabang']),
+      countMultiRole(['cabang']),
+      countMultiRole(['link']),
+    ]);
+    return { mitra, cabang, link };
+  }
+
+  if (['mitra-cabang','mitracabang'].includes(r)){
+    const [cabang, link] = await Promise.all([
+      countMultiRole(['cabang'], q=> q.eq('mitracabang_id', me.id)),
+      countMultiRole(['link'],   q=> q.eq('mitracabang_id', me.id)),
+    ]);
+    return { mitra:null, cabang, link };
+  }
+
+  if (r==='cabang'){
+    const link = await countMultiRole(['link'], q=> q.eq('cabang_id', me.id));
+    return { mitra:null, cabang:null, link };
+  }
+
+  return { mitra:null, cabang:null, link:null };
+}
+
 /* ---------- Kartu metrik ---------- */
 function card(label, value, sub=''){
   return `
@@ -170,7 +210,11 @@ function card(label, value, sub=''){
 
 async function refreshMetrics(){
   const roleLower = String(me.role||'').toLowerCase();
-  const [stokRows, salesRows] = await Promise.all([ fetchStokLinkOnly(), fetchSalesInPeriod() ]);
+  const [stokRows, salesRows, dirCount] = await Promise.all([
+    fetchStokLinkOnly(),
+    fetchSalesInPeriod(),
+    directoryCounts(),            // <<— JUMLAH USER berdasar profiles (bukan transaksi)
+  ]);
 
   // Total voucher tersedia (snapshot stok LINK)
   const totalVoucherAda = sum(stokRows, r => r?.jumlah);
@@ -197,40 +241,27 @@ async function refreshMetrics(){
     pendapatan = sum(salesRows, r=> r?.pendapatan_link);
   }
 
-  // Distinct counts (berdasar transaksi periode)
-  const distinctCount = (rows,key)=>{ const s=new Set(); for(const r of rows||[]) if(r?.[key]) s.add(r[key]); return s.size; };
-  let totalMitra=null,totalCabang=null,totalLink=null;
-  if (roleLower==='owner' || roleLower==='admin'){
-    totalMitra  = distinctCount(salesRows,'mitracabang_id');
-    totalCabang = distinctCount(salesRows,'cabang_id');
-    totalLink   = distinctCount(salesRows,'link_id');
-  } else if (['mitra-cabang','mitracabang'].includes(roleLower)){
-    totalCabang = distinctCount(salesRows,'cabang_id');
-    totalLink   = distinctCount(salesRows,'link_id');
-  } else if (roleLower==='cabang'){
-    totalLink   = distinctCount(salesRows,'link_id');
-  }
-
   const periodeText = `${$('#from')?.value||'—'} s/d ${$('#to')?.value||'—'}`;
   const blocks = [];
   if (roleLower==='owner' || roleLower==='admin'){
     blocks.push(card('Total Voucher Tersedia (semua link)', nf(totalVoucherAda)));
     blocks.push(card('Total Voucher Terjual (periode)', nf(totalVoucherTerjual), periodeText));
     blocks.push(card('Pendapatan Owner (periode)', rp(pendapatan), periodeText));
-    blocks.push(card('Total Mitra Cabang (periode)', nf(totalMitra)));
-    blocks.push(card('Total Cabang (periode)', nf(totalCabang)));
-    blocks.push(card('Total Link (periode)', nf(totalLink)));
+    // JUMLAH USER mengikuti Daftar User (tanpa label "periode")
+    blocks.push(card('Total Mitra Cabang', nf(dirCount.mitra)));
+    blocks.push(card('Total Cabang', nf(dirCount.cabang)));
+    blocks.push(card('Total Link', nf(dirCount.link)));
   } else if (['mitra-cabang','mitracabang'].includes(roleLower)){
     blocks.push(card('Total Voucher Tersedia (semua cabang)', nf(totalVoucherAda)));
     blocks.push(card('Total Voucher Terjual (periode)', nf(totalVoucherTerjual), periodeText));
     blocks.push(card('Pendapatan Mitra (periode)', rp(pendapatan), periodeText));
-    blocks.push(card('Total Cabang (periode)', nf(totalCabang)));
-    blocks.push(card('Total Link (periode)', nf(totalLink)));
+    blocks.push(card('Total Cabang', nf(dirCount.cabang)));
+    blocks.push(card('Total Link', nf(dirCount.link)));
   } else if (roleLower==='cabang'){
     blocks.push(card('Total Voucher Tersedia (link di cabang ini)', nf(totalVoucherAda)));
     blocks.push(card('Total Voucher Terjual (periode)', nf(totalVoucherTerjual), periodeText));
     blocks.push(card('Pendapatan Cabang (periode)', rp(pendapatan), periodeText));
-    blocks.push(card('Total Link di Cabang Ini (periode)', nf(totalLink)));
+    blocks.push(card('Total Link di Cabang Ini', nf(dirCount.link)));
   } else if (roleLower==='link'){
     blocks.push(card('Total Voucher Dimiliki (link ini)', nf(totalVoucherAda)));
     blocks.push(card('Total Voucher Terjual (periode)', nf(totalVoucherTerjual), periodeText));

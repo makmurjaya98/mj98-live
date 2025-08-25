@@ -76,6 +76,17 @@ function normRole(s) {
   return s;
 }
 
+/** Label role untuk tampilan (uppercase rapi) */
+function labelRole(s){
+  const r = normRole(s);
+  if (r === ROLE_MITRA)  return "MITRA";
+  if (r === ROLE_CABANG) return "CABANG";
+  if (r === ROLE_LINK)   return "LINK";
+  if (r === ROLE_OWNER)  return "OWNER";
+  if (r === ROLE_ADMIN)  return "ADMIN";
+  return (r || "").toUpperCase();
+}
+
 /** Daftar label role yang ekuivalen untuk filter .in(...) */
 function roleList(roleWant) {
   const r = normRole(roleWant);
@@ -300,7 +311,7 @@ async function loadLinkOptions() {
 }
 
 /* ==========================
-   Export CSV
+   Export CSV (tetap disimpan agar kompat)
    ========================== */
 
 function toCsvValue(v) {
@@ -348,6 +359,72 @@ function downloadCsv(filename, rows) {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
+/* ==========================
+   XLSX Export (SheetJS)
+   ========================== */
+
+// Muat library XLSX via CDN hanya saat dibutuhkan
+const XLSX_CDN = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
+function loadScript(src){
+  return new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+async function ensureXLSX(){
+  if (!window.XLSX) await loadScript(XLSX_CDN);
+  return window.XLSX;
+}
+
+// (untuk Ekspor sesuai filter) — header versi sebelumnya (tetap dipertahankan)
+function rowsToAoA(rows){
+  const aoa = [["role","username","full_name","address","phone","email","id_number"]];
+  for (const r of rows) {
+    aoa.push([
+      normRole(r.role),
+      safeText(r.username),
+      pickName(r),
+      pickAddress(r),
+      pickPhone(r),
+      safeText(r.email),
+      pickIdNum(r),
+    ]);
+  }
+  return aoa;
+}
+
+async function downloadXlsx(filename, rows){
+  const XLSX = await ensureXLSX();
+  const aoa = rowsToAoA(rows);
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+  // Lebar kolom agar rapi
+  ws["!cols"] = [
+    { wch: 10 }, // role
+    { wch: 18 }, // username
+    { wch: 28 }, // full_name
+    { wch: 28 }, // address
+    { wch: 18 }, // phone
+    { wch: 30 }, // email
+    { wch: 20 }, // id_number
+  ];
+
+  // Paksa kolom phone & id_number sebagai teks
+  for (let r = 1; r < aoa.length; r++) {
+    const phoneCell = XLSX.utils.encode_cell({ r, c: 4 });
+    const idCell    = XLSX.utils.encode_cell({ r, c: 6 });
+    if (ws[phoneCell]) ws[phoneCell].t = "s";
+    if (ws[idCell])    ws[idCell].t = "s";
+  }
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Direktori");
+  XLSX.writeFile(wb, filename);
+}
+
 /* ===== Helper untuk ekspor sesuai filter (tanpa mengubah fungsi lain) ===== */
 
 // kembalikan rows pada scope, sudah menghormati hirarki pilihan di atas
@@ -364,7 +441,7 @@ function baseRowsFor(scope) {
 }
 
 // filter rows sesuai dropdown kolom + chip aktif (jika ada)
-// jika tidak ada chip aktif, hanya ambil rows yang nilainya termasuk daftar chip (non-kosong)
+// jika tidak ada chip aktif, ambil baris yang nilainya non-kosong & muncul sebagai chip
 function filteredRowsFor(scope) {
   const bySel = el(scope === "mitra" ? "#byMitra" : scope === "cabang" ? "#byCabang" : "#byLink");
   const key   = bySel?.value || "nama";
@@ -374,10 +451,155 @@ function filteredRowsFor(scope) {
   if (activeVal) {
     return rows.filter(r => getValueByKey(r, key) === activeVal);
   }
-  // Tidak ada chip aktif → ambil semua baris yang nilainya non-kosong & muncul sebagai chip
-  const allowedValues = new Set(uniqueValues(rows, key)); // hanya non-kosong
-  if (allowedValues.size === 0) return []; // tidak ada nilai tampil
+  const allowedValues = new Set(uniqueValues(rows, key));
+  if (allowedValues.size === 0) return [];
   return rows.filter(r => allowedValues.has(getValueByKey(r, key)));
+}
+
+/* ===== Helper untuk “Ekspor Keseluruhan” → 3 sheet =====
+   — Perubahan: Sheet 2 selalu menampilkan SEMUA mitra meski tanpa cabang — */
+
+function makeSheet_DataUser(XLSX, mitraRows, cabangRows, linkRows) {
+  // Header langsung di baris 1 (tanpa judul A1), sesuai SS:
+  // NAMA LENGKAP | ROLE | USERNAME | ALAMAT | NOMOR HP | EMAIL | NIK
+  const aoa = [[
+    "NAMA LENGKAP","ROLE","USERNAME","ALAMAT","NOMOR HP","EMAIL","NIK"
+  ]];
+
+  const pushRow = (r) => aoa.push([
+    pickName(r),                // A
+    labelRole(r.role),          // B (MITRA/CABANG/LINK/...)
+    safeText(r.username),       // C
+    pickAddress(r),             // D
+    pickPhone(r),               // E
+    safeText(r.email),          // F
+    pickIdNum(r),               // G
+  ]);
+
+  [...mitraRows, ...cabangRows, ...linkRows].forEach(pushRow);
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws["!cols"] = [
+    { wch: 28 }, // A Nama Lengkap
+    { wch: 12 }, // B Role
+    { wch: 18 }, // C Username
+    { wch: 30 }, // D Alamat
+    { wch: 18 }, // E Nomor HP
+    { wch: 30 }, // F Email
+    { wch: 20 }, // G NIK
+  ];
+  for (let r = 1; r < aoa.length; r++) {
+    const phoneCell = XLSX.utils.encode_cell({ r, c: 4 });
+    const nikCell   = XLSX.utils.encode_cell({ r, c: 6 });
+    if (ws[phoneCell]) ws[phoneCell].t = "s";
+    if (ws[nikCell])   ws[nikCell].t = "s";
+  }
+  return ws;
+}
+
+function makeSheet_Mitra(XLSX, mitraRows, cabangRows) {
+  // Header sesuai contoh
+  const aoa = [[
+    "NAMA LENGKAP MITRA",
+    "CABANG DARI MITRA",
+    "USERNAME CABANG",
+    "ALAMAT CABANG",
+    "NOMOR HP CABANG",
+    "EMAIL CABANG",
+    "NIK CABANG",
+  ]];
+
+  for (const m of mitraRows) {
+    const childs = cabangRows.filter(c => (c.mitracabang_id === m.id));
+
+    if (childs.length === 0) {
+      // >>> Perubahan: tetap tampilkan baris mitra meski tanpa cabang (kolom cabang kosong)
+      aoa.push([
+        pickName(m), // Nama Mitra
+        "", "", "", "", "", "" // kolom2 cabang kosong
+      ]);
+      continue;
+    }
+
+    // Mitra dengan cabang → tetap grup seperti biasa
+    childs.forEach((c, idx) => {
+      aoa.push([
+        idx === 0 ? pickName(m) : "",     // parent hanya di baris pertama grup
+        pickName(c),
+        safeText(c.username),
+        pickAddress(c),
+        pickPhone(c),
+        safeText(c.email),
+        pickIdNum(c),
+      ]);
+    });
+  }
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws["!cols"] = [
+    { wch: 28 }, // Mitra
+    { wch: 28 }, // Cabang
+    { wch: 18 }, // Username Cabang
+    { wch: 30 }, // Alamat Cabang
+    { wch: 18 }, // Nomor HP Cabang
+    { wch: 30 }, // Email Cabang
+    { wch: 20 }, // NIK Cabang
+  ];
+  // Paksa teks untuk HP (col 4) & NIK (col 6) pada baris data (mulai r=1)
+  for (let r = 1; r < aoa.length; r++) {
+    const phoneCell = XLSX.utils.encode_cell({ r, c: 4 });
+    const nikCell   = XLSX.utils.encode_cell({ r, c: 6 });
+    if (ws[phoneCell]) ws[phoneCell].t = "s";
+    if (ws[nikCell])   ws[nikCell].t = "s";
+  }
+  return ws;
+}
+
+function makeSheet_Cabang(XLSX, cabangRows, linkRows) {
+  // Header sesuai contoh
+  const aoa = [[
+    "NAMA LENGKAP CABANG",
+    "LINK DARI CABANG",
+    "USERNAME LINK",
+    "ALAMAT LINK",
+    "NOMOR HP LINK",
+    "EMAIL LINK",
+    "NIK LINK",
+  ]];
+
+  for (const c of cabangRows) {
+    const childs = linkRows.filter(l => (l.cabang_id === c.id));
+    if (childs.length === 0) continue;
+    childs.forEach((l, idx) => {
+      aoa.push([
+        idx === 0 ? pickName(c) : "",     // parent hanya di baris pertama grup
+        pickName(l),
+        safeText(l.username),
+        pickAddress(l),
+        pickPhone(l),
+        safeText(l.email),
+        pickIdNum(l),
+      ]);
+    });
+  }
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws["!cols"] = [
+    { wch: 28 }, // Cabang
+    { wch: 28 }, // Link dari Cabang
+    { wch: 18 }, // Username Link
+    { wch: 30 }, // Alamat Link
+    { wch: 18 }, // Nomor HP Link
+    { wch: 30 }, // Email Link
+    { wch: 20 }, // NIK Link
+  ];
+  for (let r = 1; r < aoa.length; r++) {
+    const phoneCell = XLSX.utils.encode_cell({ r, c: 4 });
+    const nikCell   = XLSX.utils.encode_cell({ r, c: 6 });
+    if (ws[phoneCell]) ws[phoneCell].t = "s";
+    if (ws[nikCell])   ws[nikCell].t = "s";
+  }
+  return ws;
 }
 
 /* ==========================
@@ -421,24 +643,38 @@ function bindFilterEvents() {
   el("#byCabang")?.addEventListener("change", () => { state.chipSel.cabang = null; renderChipsFor("cabang"); });
   el("#byLink")  ?.addEventListener("change", () => { state.chipSel.link   = null; renderChipsFor("link");   });
 
-  // Ekspor sesuai filter → gunakan subset per scope
-  btnExportFilter()?.addEventListener("click", () => {
+  // Ekspor sesuai filter → gunakan subset per scope (XLSX, 1 sheet)
+  btnExportFilter()?.addEventListener("click", async () => {
     const rows = [
       ...filteredRowsFor("mitra"),
       ...filteredRowsFor("cabang"),
       ...filteredRowsFor("link"),
     ];
-    downloadCsv("direktori-filter.csv", rows);
+    await downloadXlsx("direktori-filter.xlsx", rows);
   });
 
-  // Ekspor keseluruhan (akses sesuai policy user login) — TANPA filter UI
+  // Ekspor keseluruhan (3 sheet persis seperti contoh)
   btnExportAll()?.addEventListener("click", async () => {
-    const [m, c, l] = await Promise.all([
+    const [mitraRows, cabangRows, linkRows] = await Promise.all([
       fetchProfilesByRole(ROLE_MITRA),
       fetchProfilesByRole(ROLE_CABANG),
       fetchProfilesByRole(ROLE_LINK),
     ]);
-    downloadCsv("direktori-semua.csv", [...m, ...c, ...l]);
+
+    const XLSX = await ensureXLSX();
+
+    // Buat tiga sheet
+    const wsAll  = makeSheet_DataUser(XLSX, mitraRows, cabangRows, linkRows);
+    const wsCab  = makeSheet_Mitra(XLSX, mitraRows, cabangRows);     // “DAFTAR USER - MITRA”
+    const wsLink = makeSheet_Cabang(XLSX, cabangRows, linkRows);     // “DAFTAR USER - CABANG”
+
+    // Rakit workbook
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, wsAll,  "DATA USER");
+    XLSX.utils.book_append_sheet(wb, wsCab,  "DAFTAR USER - MITRA");
+    XLSX.utils.book_append_sheet(wb, wsLink, "DAFTAR USER - CABANG");
+
+    XLSX.writeFile(wb, "direktori-semua.xlsx");
   });
 }
 
