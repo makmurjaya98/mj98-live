@@ -1,15 +1,15 @@
-// js/laporan.js — MJ98 (HYBRID FINAL)
+// js/laporan.js — MJ98 (HYBRID FINAL, deposit by created_at only)
 // Fitur:
 // - Filter hirarki: Mitra -> Cabang -> Link (role-aware)
 // - Sumber data:
-//   • DETAIL: view audit_sales_mj98 (fallback ke sales) + hitung ulang pendapatan via share/komisi hierarki
+//   • DETAIL: view audit_sales_mj98 (fallback ke sales) + hitung ulang pendapatan via share/komisi hirarki
 //   • RPC: report_per_mitracabang / report_per_cabang (akurasi = DB, cepat)
 // - Rumus: Tagihan = Σ(total_jual) − Σ(pendapatan_link);
 //   Owner = max(0, total_jual − (pend_link + pend_cabang + pend_mitra))
 // - Share/Komisi dari voucher_share_settings (hirarki)
 // - Harga dari voucher_types (untuk sheet PerVoucher)
 // - Export: DETAIL → Laporan + PerVoucher + Stok (+ Komisi/Share); RPC → Ringkasan
-// - Perbaikan TS5076: tidak mixing '??' & '||' tanpa kurung
+// - Penyeragaman: Total Setoran dihitung dari deposits.amount dengan filter waktu pada kolom created_at (akhir periode eksklusif)
 
 'use strict';
 
@@ -23,6 +23,8 @@ import {
   explainSupabaseError,
   toRp,
 } from './supabase-init.js';
+
+import { overrideRpcRowsWithDepositTotals } from './kpi-helper.js';
 
 /* ===== UTIL ===== */
 const $  = (s)=>document.querySelector(s);
@@ -95,8 +97,27 @@ async function init(){
   // Default tanggal 7 hari
   const dTo = new Date();
   const dFrom = new Date(); dFrom.setDate(dTo.getDate()-7);
-  if ($('#from')) $('#from').setAttribute('value', dFrom.toISOString().slice(0,10));
-  if ($('#to'))   $('#to').setAttribute('value',   dTo.toISOString().slice(0,10));
+  $('#from')?.setAttribute('value', dFrom.toISOString().slice(0,10));
+  $('#to')  ?.setAttribute('value',   dTo.toISOString().slice(0,10));
+
+  // Cegah submit form filter (biar tidak reload)
+  document.querySelector('#filterForm')
+    ?.addEventListener('submit', (e)=>{ e.preventDefault(); e.stopPropagation(); });
+
+  // Perubahan tanggal langsung terapkan + sinkronkan ke URL
+  ['#from','#to'].forEach(sel=>{
+    const el = document.querySelector(sel);
+    if (!el) return;
+    el.addEventListener('change', ()=>{
+      const u = new URL(location.href);
+      const f = $('#from')?.value || '';
+      const t = $('#to')  ?.value || '';
+      f ? u.searchParams.set('from', f) : u.searchParams.delete('from');
+      t ? u.searchParams.set('to',   t) : u.searchParams.delete('to');
+      history.replaceState(null,'',u.toString());
+      loadAndRender();
+    });
+  });
 
   // Group mode
   if ($('#mode')) {
@@ -116,28 +137,41 @@ async function init(){
     $('#sourceMode').addEventListener('change', ()=>{
       gSourceMode = $('#sourceMode').value || 'detail';
       if (gSourceMode==='rpc' && gGroupMode==='per-link'){
-        gGroupMode='per-cabang'; if ($('#mode')) $('#mode').value='per-cabang';
+        gGroupMode='per-cabang'; $('#mode') && ($('#mode').value='per-cabang');
       }
       loadAndRender();
     });
   }
 
-  // Tombol
-  $('#btnMitra') ?.addEventListener('click', ()=>{
-    if ($('#sourceMode')) $('#sourceMode').value='rpc';
-    gSourceMode='rpc';
-    gGroupMode='per-mitra';
-    if ($('#mode')) $('#mode').value='per-mitra';
+  // Tombol cepat
+  $('#btnMitra')?.addEventListener('click', ()=>{
+    $('#sourceMode') && ($('#sourceMode').value='rpc'); gSourceMode='rpc';
+    gGroupMode='per-mitra'; $('#mode') && ($('#mode').value='per-mitra');
     loadAndRender();
   });
   $('#btnCabang')?.addEventListener('click', ()=>{
-    if ($('#sourceMode')) $('#sourceMode').value='rpc';
-    gSourceMode='rpc';
-    gGroupMode='per-cabang';
-    if ($('#mode')) $('#mode').value='per-cabang';
+    $('#sourceMode') && ($('#sourceMode').value='rpc'); gSourceMode='rpc';
+    gGroupMode='per-cabang'; $('#mode') && ($('#mode').value='per-cabang');
     loadAndRender();
   });
-  $('#btnReload')?.addEventListener('click', ()=>{ captureSelections(); loadAndRender(); });
+
+  // Tombol Terapkan (apply)
+  const applyBtn = document.querySelector('#btnReload');
+  if (applyBtn){
+    applyBtn.addEventListener('click', (ev)=>{
+      ev.preventDefault();
+      captureSelections();
+      const u = new URL(location.href);
+      const f = $('#from')?.value || '';
+      const t = $('#to')  ?.value || '';
+      f ? u.searchParams.set('from', f) : u.searchParams.delete('from');
+      t ? u.searchParams.set('to',   t) : u.searchParams.delete('to');
+      history.replaceState(null,'', u.toString());
+      loadAndRender();
+    });
+  }
+
+  // Export & print
   $('#export')   ?.addEventListener('click', exportCsv);
   $('#exportXlsx')?.addEventListener('click', exportXlsx);
   $('#print')    ?.addEventListener('click', ()=>window.print());
@@ -342,18 +376,32 @@ async function loadAndRender(){
 }
 
 /* ===== VIA RPC (ringkas, akurat) ===== */
-function currentRange(){ const r = isoRangeFromInputs('#from','#to'); return { from:r.gte, to:r.lt }; }
+function currentRange(){
+  const fromStr = document.querySelector('#from')?.value || null;
+  const toStr   = document.querySelector('#to')?.value   || null;
+  const tz = '+08:00';
+
+  const fromISO = fromStr ? new Date(`${fromStr}T00:00:00${tz}`).toISOString() : null;
+
+  let toISO = null;
+  if (toStr){
+    const to0 = new Date(`${toStr}T00:00:00${tz}`);
+    to0.setDate(to0.getDate() + 1); // eksklusif: to+1 hari
+    toISO = to0.toISOString();
+  }
+  return { from: fromISO, to: toISO };
+}
 
 async function loadViaRpc(){
   const role = String(gProf.role||'').toLowerCase();
-  const { from, to } = currentRange();
+  const { from, to } = currentRange(); // ISO: gte = from, lt = to
   let only_mitra=null, only_cabang=null;
 
   if (role==='owner' || role==='admin'){
     only_mitra  = $('#fltMitra')  ? ($('#fltMitra').value || null)  : null;
     only_cabang = $('#fltCabang') ? ($('#fltCabang').value || null) : null;
   }else if (role==='mitra-cabang' || role==='mitracabang'){
-    only_mitra = gProf.id;
+    only_mitra  = gProf.id;
     only_cabang = $('#fltCabang') ? ($('#fltCabang').value || null) : null;
   }else if (role==='cabang'){
     only_mitra  = gProf.mitracabang_id || null;
@@ -361,21 +409,52 @@ async function loadViaRpc(){
   }
 
   if (gGroupMode==='per-mitra'){
-    const rows = await rpcReportPerMitra({ owner_id:gOwner, from, to, only_mitracabang_id: (only_mitra || null) });
+    const rows = await rpcReportPerMitra({
+      owner_id: gOwner,
+      from, to,
+      only_mitracabang_id: (only_mitra || null)
+    });
     gRowsAgg = rows || [];
+
+    // Override setoran RPC dengan deposits.amount @ created_at (to eksklusif)
+    await overrideRpcRowsWithDepositTotals({
+      rows: gRowsAgg,
+      kind: 'mitra',
+      ownerId: gOwner,
+      fromISO: from,
+      toISO: to,
+    });
+
     renderTableRpc('mitra', gRowsAgg);
-  }else{
-    const rows = await rpcReportPerCabang({ owner_id:gOwner, from, to, only_mitracabang_id: (only_mitra || null), only_cabang_id: (only_cabang || null) });
+  } else {
+    const rows = await rpcReportPerCabang({
+      owner_id: gOwner,
+      from, to,
+      only_mitracabang_id: (only_mitra || null),
+      only_cabang_id:      (only_cabang || null)
+    });
     gRowsAgg = rows || [];
+
+    // Override setoran RPC dengan deposits.amount @ created_at (to eksklusif)
+    await overrideRpcRowsWithDepositTotals({
+      rows: gRowsAgg,
+      kind: 'cabang',
+      ownerId: gOwner,
+      fromISO: from,
+      toISO: to,
+    });
+
     renderTableRpc('cabang', gRowsAgg);
   }
 
+  // ringkasan kartu setelah override
   const sum = gRowsAgg.reduce((a,r)=>({
     total_jual:     a.total_jual     + Number(r.total_jual||0),
     total_tagihan:  a.total_tagihan  + Number(r.total_tagihan||0),
     total_setoran:  a.total_setoran  + Number(r.total_setoran||0),
     sisa_setoran:   a.sisa_setoran   + Number(r.sisa_setoran||0),
   }), { total_jual:0,total_tagihan:0,total_setoran:0,sisa_setoran:0 });
+
   $('#sumTotalJual')    && ($('#sumTotalJual').textContent   = toRp(sum.total_jual));
   $('#sumTotalTagihan') && ($('#sumTotalTagihan').textContent= toRp(sum.total_tagihan));
   $('#sumTotalSetoran') && ($('#sumTotalSetoran').textContent= toRp(sum.total_setoran));
@@ -501,24 +580,29 @@ async function loadViaDetail(){
   const ownerAll   = Math.max(0, sums.total_jual - (sums.pend_link + sums.pend_cabang + sums.pend_mitra));
   const tagihanAll = sums.total_jual - sums.pend_link;
 
-  // deposits (tanggal_setor > created_at)
-  let setoran=0;
-  const linkIds = gSel.link ? [gSel.link] : [...new Set(rows.map(r0=>r0.link_id).filter(Boolean))];
-  if (linkIds.length){
-    const { data:depRows } = await supabase
+  // ====== DEPOSITS (DETAIL) — gunakan created_at saja untuk periode ======
+  // Scope mengikuti filter hirarki aktif; jumlahkan kolom `amount`, periode by created_at (to eksklusif).
+  let setoran = 0;
+  {
+    let qd = supabase
       .from('deposits')
-      .select('amount, tanggal_setor, created_at, link_id')
-      .in('link_id', linkIds);
+      .select('amount, created_at, owner_id, mitracabang_id, cabang_id, link_id')
+      .eq('owner_id', gOwner)
+      .order('created_at', { ascending:false });
+
+    // terapkan filter hirarki eksplisit (mitra/cabang/link) bila ada
+    qd = applyExplicitFilters(qd);
+
+    if (gte) qd = qd.gte('created_at', gte);
+    if (lt ) qd = qd.lt ('created_at', lt);
+
+    const { data:depRows, error:dErr } = await qd;
+    if (dErr){ console.error(dErr); }
     if (depRows && depRows.length){
-      const lo = gte ? new Date(gte).getTime() : -Infinity;
-      const hi = lt  ? new Date(lt ).getTime() :  Infinity;
-      setoran = depRows.reduce((a,r)=>{
-        const ts = r?.tanggal_setor ? new Date(r.tanggal_setor).getTime() :
-                   (r?.created_at   ? new Date(r.created_at).getTime()   : 0);
-        return (ts>=lo && ts<hi) ? (a + Number(r.amount||0)) : a;
-      }, 0);
+      setoran = depRows.reduce((a,r)=> a + Number(r.amount||0), 0);
     }
   }
+  // ======================================================================
 
   gSummary.sums = { ...sums, pend_owner:ownerAll, tagihan:tagihanAll, setoran:setoran, sisa: Math.max(0, tagihanAll - setoran) };
   $('#sumTagihan')      && ($('#sumTagihan').textContent     = toRp(gSummary.sums.tagihan));
@@ -537,11 +621,11 @@ async function loadViaDetail(){
     gSummary.shares = { share_link:null, share_cabang:null, p_link:null, p_cabang:null, p_mitra:null };
   }
   $('#metaVoucher')         && ($('#metaVoucher').textContent      = gSummary.voucherLabel);
-  $('#metaShareLink')       && ($('#metaShareLink').textContent    = (gSummary.shares.share_link   != null ? toRp(Number(gSummary.shares.share_link))   : '-'));
-  $('#metaShareCabang')     && ($('#metaShareCabang').textContent  = (gSummary.shares.share_cabang != null ? toRp(Number(gSummary.shares.share_cabang)) : '-'));
-  $('#metaKomisiLink')      && ($('#metaKomisiLink').textContent   = (gSummary.shares.p_link   != null ? (String(gSummary.shares.p_link)+'%')   : '-'));
-  $('#metaKomisiCabang')    && ($('#metaKomisiCabang').textContent = (gSummary.shares.p_cabang != null ? (String(gSummary.shares.p_cabang)+'%') : '-'));
-  $('#metaKomisiMitra')     && ($('#metaKomisiMitra').textContent  = (gSummary.shares.p_mitra  != null ? (String(gSummary.shares.p_mitra)+'%')  : '-'));
+  $('#metaShareLink')       && ($('#metaShareLink').textContent    = (gSummary.shares?.share_link   != null ? toRp(Number(gSummary.shares.share_link))   : '-'));
+  $('#metaShareCabang')     && ($('#metaShareCabang').textContent  = (gSummary.shares?.share_cabang != null ? toRp(Number(gSummary.shares.share_cabang)) : '-'));
+  $('#metaKomisiLink')      && ($('#metaKomisiLink').textContent   = (gSummary.shares?.p_link   != null ? (String(gSummary.shares.p_link)+'%')   : '-'));
+  $('#metaKomisiCabang')    && ($('#metaKomisiCabang').textContent = (gSummary.shares?.p_cabang != null ? (String(gSummary.shares.p_cabang)+'%') : '-'));
+  $('#metaKomisiMitra')     && ($('#metaKomisiMitra').textContent  = (gSummary.shares?.p_mitra  != null ? (String(gSummary.shares.p_mitra)+'%')  : '-'));
 
   // agregasi sesuai group mode
   const key = (gGroupMode==='per-link') ? 'link_id' : (gGroupMode==='per-cabang' ? 'cabang_id' : 'mitracabang_id');
