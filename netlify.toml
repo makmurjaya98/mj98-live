@@ -1,7 +1,0 @@
-﻿[build]
-  # Paksa tidak ada build step supaya tidak error exit code 2
-  command = "echo Build skipped"
-  publish = "."
-
-[build.environment]
-  NODE_VERSION = "18"
