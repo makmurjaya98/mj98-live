@@ -1,10 +1,6 @@
-# netlify.toml — MJ98
 [build]
-  # Tidak ada proses build (hindari error "exit code: 2" ketika tidak ada npm build)
   command = ""
-  # Publish langsung dari root repo (karena semua .html ada di sini)
   publish = "."
 
-# (opsional) set node untuk konsistensi log/build image
 [build.environment]
   NODE_VERSION = "18"
