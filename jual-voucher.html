@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Jual Voucher — MJ98</title>
+
+  <!-- CSS global -->
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Banner global (pengumuman) — panggil SEKALI di head -->
+  <script type="module">
+    import('./js/global-alert.js?v=deploy-01').then(m => m.initGlobalAlerts?.());
+  </script>
+
+  <!-- Gaya khusus halaman ini -->
+  <style>
+    /* Sidebar: logo center */
+    .sidebar .brand-left{
+      display:flex; justify-content:center; align-items:center;
+      padding:14px 8px 10px;
+    }
+    .sidebar .brand-left img{height:36px; width:auto; display:block}
+
+    /* Header: logo biru + judul */
+    .headerbar{display:flex; align-items:center; justify-content:space-between}
+    .header-left{display:flex; align-items:center; gap:12px}
+    .header-left .page-logo{height:44px; width:auto; display:block}
+
+    /* Panel warna */
+    .panelA{background:#0f2f4b; color:#fff; border-radius:12px; padding:18px 20px}
+    .panelB{background:#0a1d38; color:#fff; border-radius:12px; padding:18px 20px; margin-top:16px}
+
+    /* 3 filter sejajar */
+    .filters-row{display:flex; gap:14px; align-items:center; justify-content:space-between; flex-wrap:nowrap}
+    .filters-row .cell{flex:1 1 0}
+
+    /* Select pill + warna */
+    .select-pill{
+      width:100%; padding:10px 16px; border-radius:14px; font-weight:700; color:#222;
+      border:2px solid #1e5aa8 !important; appearance:none; -webkit-appearance:none; -moz-appearance:none;
+      background-clip:padding-box;
+    }
+    .select-pill.mitra{background:linear-gradient(#ffe070, #f6bf26) !important}
+    .select-pill.cabang{background:linear-gradient(#dff6c9, #bfe492) !important}
+    .select-pill.link{background:linear-gradient(#eddacc, #ceb7a6) !important}
+
+    /* Grid 3 kolom */
+    .grid-3{display:grid; grid-template-columns:1fr auto 1fr; align-items:center; gap:14px}
+    .left-col{justify-self:start} .center-col{justify-self:center} .right-col{justify-self:end}
+
+    /* Tombol khusus */
+    .btn-filter-jenis{
+      background:linear-gradient(#dff6c9,#bfe492) !important; color:#1b3a1b !important;
+      border:2px solid #1e5aa8; border-radius:14px; padding:10px 16px; font-weight:700
+    }
+    .btn-upload-gold{
+      background:linear-gradient(180deg,#fff3a6 0%,#ffe066 40%,#ffc933 60%,#f7b500 100%) !important;
+      color:#342300 !important; border:2px solid #1e5aa8; border-radius:999px; padding:12px 28px; font-weight:800;
+      box-shadow:inset 0 2px 4px rgba(255,255,255,.6), inset 0 -3px 6px rgba(0,0,0,.15);
+    }
+    .btn-pink{
+      background:linear-gradient(#ff9bb2,#ff6f91) !important; color:#fff !important;
+      border:2px solid #1e5aa8; border-radius:14px; padding:10px 16px; font-weight:700
+    }
+
+    .btn-soft{border-radius:10px; padding:10px 14px}
+    .badge-warning{background:#ea7e27; color:#fff; border-radius:8px; padding:6px 10px; font-weight:700; display:inline-block}
+
+    /* Dialog & badge total */
+    .dialog-gradient{background:linear-gradient(135deg,#1c4e8a 0%, #5e84c5 100%); color:#fff}
+    .total-pill{background:#ffeb3b; color:#000; padding:10px 14px; border-radius:10px; font-weight:700}
+  </style>
+
+  <!-- Favicon kecil (anti 404) -->
+  <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="%23F5D270"/><text x="50%" y="58%" font-size="34" text-anchor="middle" fill="%23333">MJ</text></svg>' />
+</head>
+
+<body class="page-dashboard">
+  <div class="layout">
+    <!-- ===== Sidebar ===== -->
+    <aside class="sidebar">
+      <div class="brand-left">
+        <img src="assets/gold.png" alt="MJ98" loading="lazy"/>
+      </div>
+      <nav class="menu"></nav>
+    </aside>
+
+    <!-- ===== Konten ===== -->
+    <main class="content">
+      <div class="container">
+
+        <!-- Header -->
+        <div class="headerbar">
+          <div class="header-left">
+            <img class="page-logo" src="assets/blue.webp" alt="MJ98" loading="lazy"/>
+            <h1>Jual Voucher</h1>
+          </div>
+          <div></div>
+        </div>
+
+        <!-- ===================== PANEL A ===================== -->
+        <section class="panelA" id="panel-admin" data-role-allow="owner,admin" aria-label="Panel Owner/Admin">
+          <div class="filters-row">
+            <div class="cell">
+              <select id="filterMitra" class="select-pill mitra">
+                <option value="">FILTER MITRA</option>
+              </select>
+            </div>
+            <div class="cell">
+              <select id="filterCabang" class="select-pill cabang" disabled>
+                <option value="">FILTER CABANG</option>
+              </select>
+            </div>
+            <div class="cell">
+              <select id="filterLink" class="select-pill link" disabled>
+                <option value="">FILTER LINK</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid-3" style="margin-top:16px;">
+            <button id="btnFilterJenis_admin" class="btn-filter-jenis left-col" type="button">FILTER JENIS VOUCHER</button>
+            <button id="btnUploadCodes" class="btn-upload-gold center-col" type="button">UPLOAD CODE VOUCHER</button>
+            <button id="btnEditUpload" class="btn-pink right-col" type="button">EDIT UPLOAD</button>
+          </div>
+
+          <div class="grid-3" style="margin-top:12px;">
+            <button id="btnExportPenjualanLink" class="btn btn-soft left-col" type="button">EKSPOR EXCEL PENJUALAN LINK</button>
+            <span class="center-col"><button id="btnSuspendLink" class="badge-warning" type="button" aria-pressed="false">NON</button></span>
+            <button id="btnExportRiwayatUpload" class="btn btn-soft right-col" type="button">EKSPOR EXCEL RIWAYAT TAMBAH KODE VOUCHER</button>
+          </div>
+        </section>
+
+        <!-- ===================== PANEL B ===================== -->
+        <section class="panelB" id="panel-link" aria-label="Panel Link">
+          <div class="grid-3">
+            <button id="btnExportPenjualan" class="btn btn-soft left-col" type="button">EKSPOR EXCEL PENJUALAN</button>
+            <button id="btnFilterJenis_link" class="btn-filter-jenis center-col" type="button" aria-controls="dialogJual">FILTER JENIS VOUCHER</button>
+            <div class="right-col" style="display:flex;align-items:center;gap:12px;">
+              <button id="btnInputPembeli" class="btn btn-soft" type="button">PENGISIAN DATA PEMBELI</button>
+              <button id="btnRefund" class="btn btn-pink" type="button">REFUND</button>
+              <button id="btnCart" class="icon-button" type="button" title="Keranjang (transaksi pending)">
+                <img src="assets/keranjang.webp" alt="Keranjang" width="36" height="36" />
+                <span id="cartBadge" class="badge badge-count" hidden>0</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===================== DIALOG JUAL ===================== -->
+        <div id="dialogJual" class="modal" role="dialog" aria-modal="true" aria-labelledby="dlgTitle" hidden>
+          <div class="modal-backdrop" data-close-dialog></div>
+          <div class="modal-card dialog-gradient">
+            <header class="modal-header">
+              <h2 id="dlgTitle">Pilih & Jual Voucher</h2>
+              <button class="icon-button" data-close-dialog aria-label="Tutup">✕</button>
+            </header>
+            <div class="modal-body">
+              <div class="voucher-grid">
+                <table class="tbl" id="tblVoucherList" aria-describedby="tblHelp">
+                  <thead>
+                    <tr>
+                      <th>JENIS VOUCHER</th>
+                      <th>STOK</th>
+                      <th>HARGA</th>
+                      <th>QTY</th>
+                      <th>TOTAL HARGA</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+                <p id="tblHelp" class="muted">Kolom JENIS/STOK/HARGA <strong>read-only</strong>. Link hanya mengisi <strong>QTY</strong> (0…sisa). TOTAL HARGA otomatis.</p>
+              </div>
+
+              <aside class="side-panel">
+                <button id="btnOpenCartFromDialog" class="icon-button" type="button" title="Buka Keranjang">
+                  <img src="assets/keranjang.webp" alt="Keranjang" width="40" height="40" />
+                </button>
+                <div class="total-pill"><span>Total:</span> <strong id="grandTotal">Rp.0</strong></div>
+                <div class="actions">
+                  <button id="btnSimpanKeranjang" class="btn btn-soft" type="button">Simpan ke Keranjang</button>
+                  <button id="btnJual" class="btn btn-filter-jenis" type="button" disabled>JUAL</button>
+                </div>
+                <div id="suspendBanner" class="banner warning" hidden>Link sedang NON (suspend). Penjualan dinonaktifkan.</div>
+              </aside>
+            </div>
+            <footer class="modal-footer"><small class="muted">Jika stok berubah saat menekan “JUAL”, server akan memvalidasi.</small></footer>
+          </div>
+        </div>
+
+        <!-- ===== Modal Keranjang ===== -->
+        <div id="dialogCart" class="modal" role="dialog" aria-modal="true" aria-labelledby="dlgCartTitle" hidden>
+          <div class="modal-backdrop" data-close-dialog></div>
+          <div class="modal-card">
+            <header class="modal-header"><h2 id="dlgCartTitle">Keranjang (Transaksi Pending)</h2><button class="icon-button" data-close-dialog aria-label="Tutup">✕</button></header>
+            <div class="modal-body"><div id="cartList" class="cart-list"></div></div>
+            <footer class="modal-footer"><button class="btn btn-soft" data-close-dialog>Close</button></footer>
+          </div>
+        </div>
+
+        <!-- ===== Modal Refund ===== -->
+        <div id="dialogRefund" class="modal" role="dialog" aria-modal="true" aria-labelledby="dlgRefundTitle" hidden>
+          <div class="modal-backdrop" data-close-dialog></div>
+          <div class="modal-card">
+            <header class="modal-header"><h2 id="dlgRefundTitle">Refund</h2><button class="icon-button" data-close-dialog aria-label="Tutup">✕</button></header>
+            <div class="modal-body">
+              <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                <button id="btnRefundLast" class="btn btn-soft" type="button">Refund Transaksi Terakhir</button>
+                <div class="field-inline">
+                  <input id="refundSaleId" class="input" placeholder="Masukkan Sale ID (uuid)" />
+                  <button id="btnRefundById" class="btn btn-pink" type="button">Refund by ID</button>
+                </div>
+              </div>
+            </div>
+            <footer class="modal-footer"><small class="muted">Refund mengembalikan kode ke <em>unused</em> dan mencatat audit.</small></footer>
+          </div>
+        </div>
+
+        <div id="alertArea" class="alert-area"></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Sidebar (render menu & tandai aktif) -->
+  <script type="module" src="js/sidebar.js?v=deploy-01"></script>
+
+  <!-- Script khusus halaman (lihat file JS di bawah) -->
+  <script type="module" src="js/jual-voucher.js?v=deploy-01"></script>
+</body>
+</html>

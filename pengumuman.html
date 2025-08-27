@@ -5,27 +5,26 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Pengumuman - MJ98</title>
 
+  <!-- CSS global -->
   <link rel="stylesheet" href="style.css" />
+
   <!-- favicon kecil agar tidak 404 -->
-  <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="%23c7d2fe"/><text x="50%" y="58%" font-size="34" text-anchor="middle" fill="%231e3a8a" font-family="Arial, Helvetica, sans-serif">MJ</text></svg>'>
+  <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="%23c7d2fe"/><text x="50%" y="58%" font-size="34" text-anchor="middle" fill="%231e3a8a" font-family="Arial, Helvetica, sans-serif">MJ</text></svg>' />
+
+  <!-- Banner global (pengumuman/sisa setoran) — panggil SEKALI di head -->
+  <script type="module">
+    import('./js/global-alert.js?v=beacon-1').then(m => m.initGlobalAlerts?.());
+  </script>
 </head>
 
 <body class="page-dashboard">
   <div class="layout">
-    <!-- Sidebar -->
-    <aside class="sidebar" aria-label="Navigasi utama">
-      <img class="logo" src="./assets/gold.png" alt="MJ98">
-      <nav class="menu">
-        <a class="btn" href="dashboard.html">Dashboard</a>
-        <a class="btn" href="kartu-tagihan.html">Kartu Tagihan</a>
-        <a class="btn" href="laporan.html">Laporan</a>
-        <a class="btn" href="setoran.html">Setoran</a>
-        <a class="btn" href="stok.html">Stok</a>
-        <a class="btn" href="voucher.html">Voucher</a>
-        <a class="btn" href="daftar-user.html">Daftar User</a>
-        <a class="btn active" aria-current="page" href="pengumuman.html">Pengumuman</a>
-        <a class="btn" href="pengaturan.html">Pengaturan</a>
-      </nav>
+    <!-- ===== Sidebar ===== -->
+    <aside class="sidebar">
+      <div class="brand-left">
+        <img src="assets/gold.png" alt="MJ98" loading="lazy"/>
+      </div>
+      <nav class="menu"></nav>
     </aside>
 
     <!-- Konten -->
@@ -148,12 +147,10 @@
     </main>
   </div>
 
+  <!-- Script global sidebar (render menu untuk semua halaman) -->
+  <script type="module" src="js/sidebar.js?v=deploy-01"></script>
+
   <!-- Logic halaman -->
   <script type="module" src="js/pengumuman.js"></script>
-
-  <!-- Global alerts (banner + beacon + sisa setoran). Auto-init on DOMContentLoaded. -->
-  <script type="module" src="js/global-alert.js?v=deploy-04"></script>
-
-  <noscript>Aktifkan JavaScript untuk melihat pengumuman & beacon.</noscript>
-</body>
+ </body>
 </html>

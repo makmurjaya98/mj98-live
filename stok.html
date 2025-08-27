@@ -4,32 +4,27 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Stok – MJ98</title>
+
+  <!-- CSS global -->
   <link rel="stylesheet" href="style.css" />
+
   <!-- favicon anti-404 -->
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23FFDE59'/%3E%3Ctext x='50%25' y='58%25' font-size='34' text-anchor='middle' fill='%230F172A' font-family='Arial, Helvetica, sans-serif'%3EMJ%3C/text%3E%3C/svg%3E">
+
+  <!-- Banner global (pengumuman/sisa setoran) — panggil SEKALI di head -->
+  <script type="module">
+    import('./js/global-alert.js?v=beacon-1').then(m => m.initGlobalAlerts?.());
+  </script>
 </head>
-
-<script>window.__MJ98_DISABLE_ANNOUNCEMENT_BEACON = true;</script>
-<script type="module" src="./js/global-alert.js"></script>
-
-<script type="module">
-  import('./js/global-alert.js?v=deploy-01').then(m => m.initGlobalAlerts?.());
-</script>
 
 <body class="page-dashboard">
   <div class="layout">
-    <!-- Sidebar -->
+    <!-- ===== Sidebar ===== -->
     <aside class="sidebar">
-      <img class="logo" src="assets/gold.png" alt="MJ98" />
-      <nav class="menu" aria-label="Menu utama">
-        <a class="btn" href="dashboard.html">Dashboard</a>
-        <a class="btn" href="laporan.html">Laporan</a>
-        <a class="btn" href="setoran.html">Setoran</a>
-        <a class="btn active" aria-current="page" href="stok.html">Stok</a>
-        <a class="btn" href="voucher.html">Voucher</a>
-        <a class="btn" href="pengumuman.html">Pengumuman</a>
-        <a class="btn" href="pengaturan.html">Pengaturan</a>
-      </nav>
+      <div class="brand-left">
+        <img src="assets/gold.png" alt="MJ98" loading="lazy"/>
+      </div>
+      <nav class="menu"></nav>
     </aside>
 
     <!-- Konten -->
@@ -117,7 +112,7 @@
 
           <div style="flex:1 1 auto"></div>
 
-          <!-- Tombol export (baru) -->
+          <!-- Tombol export -->
           <button id="btnExportStok" class="btn" type="button" title="Ekspor tabel Stok Sekarang ke Excel">Export Stok (XLSX)</button>
           <button id="btnExportMutasi" class="btn" type="button" title="Ekspor riwayat tambah stok ke Excel">Export Riwayat Stok (XLSX)</button>
 
@@ -163,7 +158,7 @@
         </table>
       </section>
 
-      <!-- Riwayat Tambah Stok (disembunyikan; akses via tombol export) -->
+      <!-- Riwayat Tambah Stok -->
       <section id="mutasiSection" class="card" style="overflow:auto; display:none" aria-hidden="true">
         <h3 class="mb-10" style="margin:0 0 10px 0">Riwayat Tambah Stok</h3>
         <table class="table" style="width:100%">
@@ -187,61 +182,11 @@
     </main>
   </div>
 
-  <!-- Dialog Tambah Stok (Mitra → Cabang → Link WAJIB) -->
-  <dialog id="dlgAdd" style="max-width:980px;width:96%">
-    <form id="addForm" method="dialog" style="padding:6px 2px">
-      <h3 style="margin:0 0 12px 0">Tambah Stok Owner/Admin</h3>
-
-      <div class="form-grid" style="grid-template-columns:1fr 1fr">
-        <div>
-          <label for="a_vtype">Voucher</label>
-          <select id="a_vtype" required></select>
-        </div>
-        <div>
-          <label for="a_qty">Jumlah</label>
-          <input id="a_qty" type="number" min="1" step="1" required />
-          <small>Stok selalu ditambahkan ke <b>Link</b></small>
-        </div>
-        <div class="full">
-          <label for="a_note">Catatan (opsional)</label>
-          <input id="a_note" placeholder="mis. pengadaan, koreksi, dsb" />
-        </div>
-      </div>
-
-      <h4 class="mt-12" style="margin:12px 0 6px 0">Tujuan (wajib)</h4>
-      <div class="form-grid" style="grid-template-columns:1fr 1fr 1fr">
-        <div>
-          <label for="a_mitra">Mitra</label>
-          <select id="a_mitra" required>
-            <option value="">Pilih</option>
-          </select>
-        </div>
-        <div>
-          <label for="a_cabang">Cabang</label>
-          <select id="a_cabang" required disabled>
-            <option value="">Pilih</option>
-          </select>
-        </div>
-        <div>
-          <label for="a_link">Link</label>
-          <select id="a_link" required disabled>
-            <option value="">Pilih</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="flex gap-10" style="justify-content:flex-end;margin-top:14px">
-        <button type="button" id="btnCancel" class="btn">Batal</button>
-        <button type="submit" class="btn btn-primary">Simpan</button>
-      </div>
-      <div id="addMsg" class="mt-8" style="min-height:18px;color:#ffbfbf"></div>
-    </form>
-  </dialog>
+  <!-- Script global sidebar (render menu untuk semua halaman) -->
+  <script type="module" src="js/sidebar.js?v=deploy-01"></script>
 
   <!-- Modul JS -->
   <script type="module" src="js/supabase-init.js"></script>
   <script type="module" src="js/stok.js"></script>
 </body>
-<!-- Muat sekali; file akan auto-init sendiri -->
-<script type="module" src="./js/global-alert.js?v=beacon-1"></script>
 </html>

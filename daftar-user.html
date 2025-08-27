@@ -4,7 +4,14 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
   <title>Direktori Pengguna — MJ98</title>
+
+  <!-- CSS global -->
   <link rel="stylesheet" href="style.css"/>
+
+  <!-- Banner global (pengumuman/sisa setoran) — panggil sekali, di head -->
+  <script type="module">
+    import('./js/global-alert.js?v=beacon-1').then(m => m.initGlobalAlerts?.());
+  </script>
 
   <!-- Gaya ringan khusus halaman ini (tidak mengganggu style.css) -->
   <style>
@@ -78,10 +85,6 @@
   </style>
 </head>
 
-<script type="module">
-  import('./js/global-alert.js?v=deploy-01').then(m => m.initGlobalAlerts?.());
-</script>
-
 <body class="page-dashboard">
   <div class="layout">
     <aside class="sidebar">
@@ -89,7 +92,7 @@
       <div class="brand-left">
         <img src="assets/gold.png" alt="MJ98" loading="lazy"/>
       </div>
-      <!-- Menu akan diisi otomatis oleh renderSidebar() -->
+      <!-- Menu akan diisi otomatis oleh sidebar.js -->
       <nav class="menu"></nav>
     </aside>
 
@@ -111,7 +114,7 @@
           <button id="btnExportAll" class="btn-soft">Ekspor Excel keseluruhan (sesuai akses)</button>
         </div>
 
-        <!-- KOTAK FILTER HIRARKI (tetap seperti sebelumnya) -->
+        <!-- KOTAK FILTER HIRARKI -->
         <section class="filters-grid" id="filters">
           <!-- Mitra -->
           <div class="filter-card" id="cardFilterMitra">
@@ -141,7 +144,7 @@
           </div>
         </section>
 
-        <!-- DATA LIST (tanpa tabel; hanya dropdown + chips nilai) -->
+        <!-- DATA LIST (dropdown + chips nilai) -->
         <section class="data-grid">
           <!-- MITRA -->
           <div class="data-card" id="boxMitra">
@@ -195,14 +198,10 @@
     </main>
   </div>
 
-  <!-- JS -->
+  <!-- Script global sidebar (render menu) -->
+  <script type="module" src="js/sidebar.js?v=deploy-01"></script>
+
+  <!-- Script khusus halaman ini -->
   <script type="module" src="js/daftar-user.js"></script>
 </body>
-
-<script type="module">
-  import { initGlobalAlerts } from './js/global-alert.js';
-  initGlobalAlerts();
-</script>
-<!-- Muat sekali; file akan auto-init sendiri -->
-<script type="module" src="./js/global-alert.js?v=beacon-1"></script>
 </html>

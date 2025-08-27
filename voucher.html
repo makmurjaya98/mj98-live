@@ -5,35 +5,29 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Voucher — MJ98</title>
 
+  <!-- CSS global -->
   <link rel="stylesheet" href="style.css" />
+
   <!-- favicon inline biar tidak 404 -->
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23f5d270'/%3E%3Ctext x='10' y='46' font-size='36' fill='%23334'%3EMP%3C/text%3E%3C/svg%3E" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23f5d270'/%3E%3Ctext x='50%25' y='58%25' font-size='34' text-anchor='middle' fill='%23333' font-family='Arial, Helvetica, sans-serif'%3EMJ%3C/text%3E%3C/svg%3E" />
 
   <!-- Dependensi (untuk xlsx export) -->
   <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <!-- Banner global (pengumuman/sisa setoran) — panggil SEKALI di head -->
+  <script type="module">
+    import('./js/global-alert.js?v=beacon-1').then(m => m.initGlobalAlerts?.());
+  </script>
 </head>
-
-<script>window.__MJ98_DISABLE_ANNOUNCEMENT_BEACON = true;</script>
-<script type="module" src="./js/global-alert.js"></script>
-
-<script type="module">
-  import('./js/global-alert.js?v=deploy-01').then(m => m.initGlobalAlerts?.());
-</script>
 
 <body class="page-dashboard">
   <div class="layout">
-    <!-- Sidebar -->
-    <aside class="sidebar" aria-label="Menu utama">
-      <img class="logo" src="assets/gold.png" alt="MJ98" />
-      <nav class="menu">
-        <a class="btn" href="dashboard.html">Dashboard</a>
-        <a class="btn" href="laporan.html">Laporan</a>
-        <a class="btn" href="setoran.html">Setoran</a>
-        <a class="btn" href="stok.html">Stok</a>
-        <a class="btn active" aria-current="page" href="voucher.html">Voucher</a>
-        <a class="btn" href="pengumuman.html">Pengumuman</a>
-        <a class="btn" href="pengaturan.html">Pengaturan</a>
-      </nav>
+    <!-- ===== Sidebar ===== -->
+    <aside class="sidebar">
+      <div class="brand-left">
+        <img src="assets/gold.png" alt="MJ98" loading="lazy"/>
+      </div>
+      <nav class="menu"></nav>
     </aside>
 
     <!-- Konten -->
@@ -179,6 +173,9 @@
       <div id="msgShare" class="opacity-80 mt-8"></div>
     </form>
   </dialog>
+
+  <!-- Script global sidebar (render menu untuk semua halaman) -->
+  <script type="module" src="js/sidebar.js?v=deploy-01"></script>
 
   <!-- Module scripts (cache-busted agar pasti terbaru) -->
   <script type="module" src="js/supabase-init.js?v=2025-08-16"></script>

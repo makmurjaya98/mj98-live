@@ -7,23 +7,22 @@
 
   <link rel="stylesheet" href="style.css" />
   <!-- Favicon kecil agar tidak 404 -->
-  <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="%23F5D270"/><text x="50%" y="58%" font-size="34" text-anchor="middle" fill="%23333" font-family="Arial, Helvetica, sans-serif">MP</text></svg>'>
-</head>
+  <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="%23F5D270"/><text x="50%" y="58%" font-size="34" text-anchor="middle" fill="%23333" font-family="Arial, Helvetica, sans-serif">MJ</text></svg>' />
 
-<script type="module">
-  import('./js/global-alert.js?v=deploy-01').then(m => m.initGlobalAlerts?.());
-</script>
+  <!-- Banner global (pengumuman/sisa setoran) — panggil SEKALI di head -->
+  <script type="module">
+    import('./js/global-alert.js?v=beacon-1').then(m => m.initGlobalAlerts?.());
+  </script>
+</head>
 
 <body class="page-dashboard">
   <div class="layout">
-    <!-- Sidebar (logo diatur oleh CSS: .page-dashboard .sidebar .logo) -->
+    <!-- ===== Sidebar ===== -->
     <aside class="sidebar">
-      <img class="logo" alt="MJ98" />
-      <nav class="menu" aria-label="Menu utama">
-        <a class="btn" href="dashboard.html">Dashboard</a>
-        <a class="btn" href="laporan.html">Laporan</a>
-        <a class="btn active" aria-current="page" href="pengaturan.html">Pengaturan</a>
-      </nav>
+      <div class="brand-left">
+        <img src="assets/gold.png" alt="MJ98" loading="lazy"/>
+      </div>
+      <nav class="menu"></nav>
     </aside>
 
     <!-- Konten -->
@@ -115,10 +114,11 @@
     </main>
   </div>
 
+  <!-- Script global sidebar (render menu untuk semua halaman) -->
+  <script type="module" src="js/sidebar.js?v=deploy-01"></script>
+
   <!-- Modul aplikasi -->
   <script type="module" src="js/supabase-init.js"></script>
   <script type="module" src="js/pengaturan.js"></script>
 </body>
-<!-- Muat sekali; file akan auto-init sendiri -->
-<script type="module" src="./js/global-alert.js?v=beacon-1"></script>
 </html>
