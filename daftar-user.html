@@ -20,6 +20,19 @@
       --filter-title-yellow:#fff35a;
       --filter-blue:#0b6bb8;
     }
+
+    /* ====== HEADER: logo kiri + judul ====== */
+    .headerbar{
+      display:flex; align-items:center; gap:12px;
+      margin:6px 0 12px;
+    }
+    .headerbar .page-logo{
+      height:44px; width:auto; display:block; object-fit:contain;
+    }
+    .headerbar h1{ margin:0; }
+    .headerbar .muted{ margin:4px 0 0; }
+
+    /* ====== FILTER & DATA KARTU ====== */
     .filters-grid{
       display:grid; grid-template-columns:repeat(3,minmax(260px,1fr));
       gap:24px; align-items:stretch;
@@ -75,13 +88,13 @@
     .toolbar{ display:flex; gap:10px; flex-wrap:wrap; margin:8px 0 22px; }
     .btn-soft{ background:#d9ecff; border:2px solid #86bdf1; color:#084a98; border-radius:12px; padding:8px 12px; font-weight:700; cursor:pointer; }
 
-    /* Logo + header */
+    /* Logo sidebar kiri (tetap) */
     .brand-left{ display:flex; justify-content:center; align-items:center; padding:16px 8px; }
     .brand-left img{ height:44px; display:block; }
-    .headerbar{ display:flex; align-items:center; justify-content:space-between; gap:16px; }
-    .brand-right img{ height:40px; display:block; }
 
-    @media (max-width:1024px){ .filters-grid,.data-grid{ grid-template-columns:1fr; } }
+    @media (max-width:1024px){
+      .filters-grid,.data-grid{ grid-template-columns:1fr; }
+    }
   </style>
 </head>
 
@@ -90,7 +103,12 @@
     <aside class="sidebar">
       <!-- Logo kiri (emas) -->
       <div class="brand-left">
-        <img src="assets/gold.png" alt="MJ98" loading="lazy"/>
+        <img class="logo"
+             src="assets/gold.png"
+             alt="MJ98"
+             loading="eager"
+             decoding="async"
+             fetchpriority="high" />
       </div>
       <!-- Menu akan diisi otomatis oleh sidebar.js -->
       <nav class="menu"></nav>
@@ -98,14 +116,12 @@
 
     <main class="content">
       <div class="container">
+        <!-- HEADER: logo biru di kiri + judul -->
         <div class="headerbar">
+          <img class="page-logo" src="assets/blue.webp" alt="MJ98" loading="lazy"/>
           <div>
             <h1>Direktori Pengguna</h1>
             <p class="muted">Tampilkan daftar Mitra, Cabang, dan Link sesuai hak akses &amp; filter.</p>
-          </div>
-          <!-- Logo kanan (biru) -->
-          <div class="brand-right">
-            <img src="assets/blue.webp" alt="MJ98" loading="lazy"/>
           </div>
         </div>
 

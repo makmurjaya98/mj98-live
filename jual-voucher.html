@@ -81,7 +81,12 @@
     <!-- ===== Sidebar ===== -->
     <aside class="sidebar">
       <div class="brand-left">
-        <img src="assets/gold.png" alt="MJ98" loading="lazy"/>
+        <img class="logo"
+             src="assets/gold.png"
+             alt="MJ98"
+             loading="eager"
+             decoding="async"
+             fetchpriority="high" />
       </div>
       <nav class="menu"></nav>
     </aside>
@@ -224,7 +229,6 @@
 
   <!-- Sidebar (render menu & tandai aktif) -->
   <script type="module" src="js/sidebar.js?v=deploy-01"></script>
-
   <!-- Script khusus halaman (lihat file JS di bawah) -->
   <script type="module" src="js/jual-voucher.js?v=deploy-01"></script>
 </body>

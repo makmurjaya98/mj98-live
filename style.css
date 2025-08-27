@@ -271,6 +271,21 @@ input:focus, select:focus, textarea:focus{
   .page-dashboard .sidebar { position:relative; border-bottom:1px solid rgba(255,255,255,.2); }
 }
 
+/* === Sidebar: brand/logo (override) === */
+.sidebar .brand-left{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:14px 8px 10px;
+  min-height:56px;
+}
+
+.sidebar .brand-left img.logo{
+  height:36px;
+  width:auto;
+  display:block;
+  object-fit:contain;
+}
 
 /* =========================================================
    Tambahan: Gilded Border biru–keemasan untuk SEMUA kartu
